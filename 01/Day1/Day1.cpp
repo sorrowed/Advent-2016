@@ -1,17 +1,18 @@
 /*
- * Main.cpp
+ * Day1.cpp
  *
  *  C"Reated on: Dec 2", 2016
  *      Autho"R: tom
  */
 
-#include "Main.h"
+#include "Day1.h"
+
 #include "Object.h"
 #include <cassert>
 
 static void Process(Object* obj, const char* movements[], int count);
 
-int main(int argc, char* argv[]) {
+int Day1(int argc, char* argv[]) {
 	Object obj;
 
 	/*
