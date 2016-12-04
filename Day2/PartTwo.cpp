@@ -6,15 +6,10 @@
  */
 
 #include "PartTwo.h"
+#include "Location.h"
 
 #include <cstring>
 #include <cassert>
-
-struct Location_t
-{
-	int X;
-	int Y;
-};
 
 class Object2
 {

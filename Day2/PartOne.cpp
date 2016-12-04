@@ -1,14 +1,9 @@
 #include "PartOne.h"
+#include "Location.h"
 
 #include <cassert>
 #include <string>
 #include <cstring>
-
-struct Location_t
-{
-	int X;
-	int Y;
-};
 
 class Object
 {
@@ -26,37 +21,37 @@ public:
 		Location.Y = 1;
 	}
 
-	void Move(char dir)
+	void Move( char dir )
 	{
 
-		switch (dir)
+		switch( dir )
 		{
 		case 'U':
-			if (Location.Y < 2)
+			if( Location.Y < 2 )
 				++Location.Y;
 			break;
 		case 'R':
-			if (Location.X < 2)
+			if( Location.X < 2 )
 				++Location.X;
 			break;
 		case 'D':
-			if (Location.Y > 0)
+			if( Location.Y > 0 )
 				--Location.Y;
 			break;
 		case 'L':
-			if (Location.X > 0)
+			if( Location.X > 0 )
 				--Location.X;
 			break;
 		}
 	}
 };
 
-static void Process(Object* obj, Location_t locations[], const char* movements[], int count);
+static void Process( Object* obj, Location_t locations[], const char* movements[], int count );
 static void CreateCode( char code[], Location_t locations[], int count );
-int Day2_Part1(int argc, char* argv[])
+
+int Day2_Part1( int argc, char* argv[] )
 {
-	const char* input[] =
-	{
+	const char* input[] = {
 		"RLRLLLULULULUUDUULULRDDLURURDDLDUUDDLRDDUUUDDRUDLRRDDUDUUDULUDRDULRUDRULRDRUDLDDULRRDLDRLUDDLLDRDDDUDDLUDUDULDRLLDRLULRLURDLULRUUUDRULLUUDLRDLDDUDRRRLDLRUUURRLDDRRRURLLULDUULLDRLRDLLDURDLDDULLDDLDLUURRRURLRURLLRRDURLDUDDLULUUULULLLDRRRRRLULRDUDURURLULRURRRLLUURDURULRRUULDRDLULDLLUDLUDRLUDLRRLDLLDLDUDDLULLDRULRLRULDURRDLDLLUDRLLDRRDLDUDUURUURDUUDDDLDLDDRDLUDLDUUUUDLDRLRURDLURURDLLLUURURDRDLUDLLRUDULLLDLULLULLDLDDRDRRRUDDDUDDDDRULLLLRLDDLLRDRLLLRRLDRRUDRUUURLLLRULRRDURDLDRLDDUUDUUURRLRRUDLDLDDRUDLULLUUDUUUDLUDDRUULLLURUDDDDLRUDDLLLRUR",
 		"LDLRLDDDLUDRDRRUDUURLRULLUDDRLURLUULDLLRLLUDLRLRUDLULRLRRLRURLDDDURUDUUURDRLDDLUUUDRUDUDDDLLURLLULRUULLUDRULUDDULDUDUDULLDRUUUULRDUUDLUDURDLLRLLRLUUDUUDRLLLRULUURUDLDRLLDUDLDDRULDULDURRLDDDUDUDDRUDUDRDURLLLLLULDRDDLLUDULLLUDRURLDLDLDULLDDRURRLUDDRLURLULRLDDDUUUURLRDLRURDDURLDLRRLLRLRLUURRLLDDLDRLRDUDDLLDDDURUUDURLRRDUULRRDDRRUULDRLRUDRRLDDRLDRULLDLDURRULDURRRDLRRLRLLLRLDRLLULRRLLLLLDLDDULDLLDLLDUUDDRLURUUUUULRDDLRDLRDRDRDLUDDLDDRULLUDDRLDLLUDRLUURRLUDURURLLRURRURRLRLLRLURURDDDDRRLURDUULLUU",
 		"LLRRDURRDLDULRDUDLRDRDRURULDURUDRRURDDDRLDLDRDRDRDRULDUURLULDDUURUULUDULLDUDLLLLDLLLDRLUUULLULDDRRUDDULLLULRDRULDDULDUDRDDLUUURULDLLUDUUUUURUDLLDRDULLRULLDURDRLLDLDRDDURUULUDURRRUULLDUUDDURDURLDLRRLLDURDDLRRRUDLRRRDLDRLUDLUDRDRLDDLLLRLLRURDLRDUUUURRLULDDLDLLLUDRDRLRRDURDDLURDLDDDULLLRRLDDDRULDDDLRRDULUUUDRRULDDLLLURDRRLLLUULDRRRUURRDDLULDRLULDDDLDULDRRRULRULLURLURULLLLRUDRRRDRDRDLDULURLRRRRLRUDDRRRUURUURLLRURURUURRURRDLDLLUDRRRDUDDRDURLLRLRRULD",
@@ -66,25 +61,24 @@ int Day2_Part1(int argc, char* argv[])
 
 	Object obj;
 	Location_t locations[ 5 ];
-	char code [ 5 ];
+	char code[ 5 ];
 
-	Process(&obj, locations, input, 5);
+	Process( &obj, locations, input, 5 );
 
 	CreateCode( code, locations, 5 );
 
 	return 0;
 }
 
-void Process(Object* obj, Location_t locations[], const char* movements[], int count)
+void Process( Object* obj, Location_t locations[], const char* movements[], int count )
 {
-	for (int i = 0; i < count; ++i)
-	{
+	for( int i = 0; i < count; ++i ) {
 
-		const char* m = movements[i];
+		const char* m = movements[ i ];
 
-		int len = strlen(m);
-		for (int j = 0; j < len; ++j)
-			obj->Move(m[j]);
+		int len = strlen( m );
+		for( int j = 0; j < len; ++j )
+			obj->Move( m[ j ] );
 
 		locations[ i ] = obj->Location;
 	}
@@ -92,11 +86,11 @@ void Process(Object* obj, Location_t locations[], const char* movements[], int c
 
 void CreateCode( char code[], Location_t locations[], int count )
 {
-	for( int i = 0; i < count; ++i ){
+	for( int i = 0; i < count; ++i ) {
 		auto l = &locations[ i ];
 
 		int ix = 3 * l->Y + l->X;
 
-		code[ i ] = "789456123"[ix];
+		code[ i ] = "789456123"[ ix ];
 	}
 }

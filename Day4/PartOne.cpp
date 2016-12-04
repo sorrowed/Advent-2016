@@ -5,16 +5,16 @@
 #include <vector>
 #include <fstream>
 
-static void Read( void );
-
-std::vector<RoomId> rooms;
+static void Read( std::vector<RoomId>* dst );
 
 int Day4_Part1(int argc, char* argv[])
 {
-	Read();
+	std::vector<RoomId> ids;
+
+	Read( &ids );
 
 	int sum = 0;
-	for( auto it = rooms.begin(); it != rooms.end(); ++it )
+	for( auto it = ids.begin(); it != ids.end(); ++it )
 	{
 		if( it->IsValid( ))
 			sum += it->id;
@@ -27,9 +27,10 @@ int Day4_Part2(int argc, char* argv[])
 {
 	int id = -1;
 
-	Read();
+	std::vector<RoomId> ids;
+	Read( &ids );
 
-	for( auto it = rooms.begin(); it != rooms.end(); ++it )
+	for( auto it = ids.begin(); it != ids.end(); ++it )
 	{
 		if( !it->IsValid( ))
 			continue;
@@ -43,16 +44,17 @@ int Day4_Part2(int argc, char* argv[])
 	return id;
 }
 
-void Read( void )
+void Read( std::vector<RoomId>* dst )
 {
-	rooms.clear();
+	dst->clear();
 
 	std::ifstream file( "input.txt", std::ifstream::in );
 	std::string line;
+
 	std::getline( file, line );
 	while( file.good() ){
 		RoomId id( line );
-		rooms.push_back( id );
+		dst->push_back( id );
 		std::getline( file, line );
 	}
 }
