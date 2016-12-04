@@ -27,7 +27,6 @@ public:
 
 	void Move( char dir )
 	{
-
 		switch( dir )
 		{
 		case 'U':

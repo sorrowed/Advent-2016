@@ -12,7 +12,6 @@
 #include <cstring>
 #include <cassert>
 
-
 namespace Day2_2
 {
 
@@ -34,55 +33,64 @@ public:
 
 	void Move( char dir )
 	{
-		auto l = &Location;
+		auto l = Location;
 
 		switch( dir )
 		{
 		case 'U':
-			if( l->Y == 0 || l->Y == 1 )
-				++l->Y;
-			else if( l->Y == 2 && l->X > 0 && l->X < 4 )
-				++l->Y;
-			else if( l->Y == 3 && l->X == 2 )
-				++l->Y;
+			if( l.Y < 4 )
+				++l.Y;
 			break;
-
 		case 'R':
-			if( l->X == 0 || l->X == 1 )
-				++l->X;
-			else if( l->X == 2 && l->Y > 0 && l->Y < 4 )
-				++l->X;
-			else if( l->X == 3 && l->Y == 2 )
-				++l->X;
+			if( l.X < 4 )
+				++l.X;
 			break;
-
 		case 'D':
-			if( l->Y == 3 || l->Y == 4 )
-				--l->Y;
-			else if( l->Y == 2 && l->X > 0 && l->X < 4 )
-				--l->Y;
-			else if( l->Y == 1 && l->X == 2 )
-				--l->Y;
+			if( l.Y > 0 )
+				--l.Y;
 			break;
-
 		case 'L':
-			if( l->X == 3 || l->X == 4 )
-				--l->X;
-			else if( l->X == 2 && l->Y > 0 && l->Y < 4 )
-				--l->X;
-			else if( l->X == 1 && l->Y == 2 )
-				--l->X;
+			if( l.X > 0 )
+				--l.X;
 			break;
 		}
+
+		if( IsValid( l ) )
+			Location = l;
+	}
+
+	bool IsValid( const Location_t& l )
+	{
+		if( l.X < 0 || l.X > 4 )
+			return false;
+
+		if( l.Y < 0 || l.X > 4 )
+			return false;
+
+		if( l.Y == 4 && l.X != 2 )
+			return false;
+
+		if( l.Y == 3 && (l.X == 0 || l.X == 4) )
+			return false;
+
+		if( l.Y == 1 && (l.X == 0 || l.X == 4) )
+			return false;
+
+		if( l.Y == 0 && l.X != 2 )
+			return false;
+
+		return true;
 	}
 };
 
 static void Process( Object* obj, Location_t locations[], const char* movements[], int count );
 static void CreateCode( char code[], Location_t locations[], int count );
+static char CreateCode( const Location_t& l );
 
 int Day2_Part2( int argc, char* argv[] )
 {
-	const char* input[] = {
+	const char* input[] =
+	{
 		"RLRLLLULULULUUDUULULRDDLURURDDLDUUDDLRDDUUUDDRUDLRRDDUDUUDULUDRDULRUDRULRDRUDLDDULRRDLDRLUDDLLDRDDDUDDLUDUDULDRLLDRLULRLURDLULRUUUDRULLUUDLRDLDDUDRRRLDLRUUURRLDDRRRURLLULDUULLDRLRDLLDURDLDDULLDDLDLUURRRURLRURLLRRDURLDUDDLULUUULULLLDRRRRRLULRDUDURURLULRURRRLLUURDURULRRUULDRDLULDLLUDLUDRLUDLRRLDLLDLDUDDLULLDRULRLRULDURRDLDLLUDRLLDRRDLDUDUURUURDUUDDDLDLDDRDLUDLDUUUUDLDRLRURDLURURDLLLUURURDRDLUDLLRUDULLLDLULLULLDLDDRDRRRUDDDUDDDDRULLLLRLDDLLRDRLLLRRLDRRUDRUUURLLLRULRRDURDLDRLDDUUDUUURRLRRUDLDLDDRUDLULLUUDUUUDLUDDRUULLLURUDDDDLRUDDLLLRUR",
 		"LDLRLDDDLUDRDRRUDUURLRULLUDDRLURLUULDLLRLLUDLRLRUDLULRLRRLRURLDDDURUDUUURDRLDDLUUUDRUDUDDDLLURLLULRUULLUDRULUDDULDUDUDULLDRUUUULRDUUDLUDURDLLRLLRLUUDUUDRLLLRULUURUDLDRLLDUDLDDRULDULDURRLDDDUDUDDRUDUDRDURLLLLLULDRDDLLUDULLLUDRURLDLDLDULLDDRURRLUDDRLURLULRLDDDUUUURLRDLRURDDURLDLRRLLRLRLUURRLLDDLDRLRDUDDLLDDDURUUDURLRRDUULRRDDRRUULDRLRUDRRLDDRLDRULLDLDURRULDURRRDLRRLRLLLRLDRLLULRRLLLLLDLDDULDLLDLLDUUDDRLURUUUUULRDDLRDLRDRDRDLUDDLDDRULLUDDRLDLLUDRLUURRLUDURURLLRURRURRLRLLRLURURDDDDRRLURDUULLUU",
 		"LLRRDURRDLDULRDUDLRDRDRURULDURUDRRURDDDRLDLDRDRDRDRULDUURLULDDUURUULUDULLDUDLLLLDLLLDRLUUULLULDDRRUDDULLLULRDRULDDULDUDRDDLUUURULDLLUDUUUUURUDLLDRDULLRULLDURDRLLDLDRDDURUULUDURRRUULLDUUDDURDURLDLRRLLDURDDLRRRUDLRRRDLDRLUDLUDRDRLDDLLLRLLRURDLRDUUUURRLULDDLDLLLUDRDRLRRDURDDLURDLDDDULLLRRLDDDRULDDDLRRDULUUUDRRULDDLLLURDRRLLLUULDRRRUURRDDLULDRLULDDDLDULDRRRULRULLURLURULLLLRUDRRRDRDRDLDULURLRRRRLRUDDRRRUURUURLLRURURUURRURRDLDLLUDRRRDUDDRDURLLRLRRULD",
@@ -94,43 +102,38 @@ int Day2_Part2( int argc, char* argv[] )
 	Location_t locations[ 5 ];
 	char code[ 5 ];
 
-	Process(&obj, locations, input, 5);
+	Process( &obj, locations, input, 5 );
 
-	CreateCode(code, locations, 5);
+	CreateCode( code, locations, 5 );
 
 	return 0;
 }
 
 int Day2_Part2_Test( void )
 {
-	const char* input[] = {
-		"ULL",
-		"RRDDD",
-		"LURDL",
-		"UUUUD"
-	};
+	const char* input[] = { "ULL", "RRDDD", "LURDL", "UUUUD" };
 
 	Object obj;
 	Location_t locations[ 4 ];
 	char code[ 4 ];
 
-	Process(&obj, locations, input, 4);
+	Process( &obj, locations, input, 4 );
 
-	CreateCode(code, locations, 4);
+	CreateCode( code, locations, 4 );
 
-	assert(!strncmp(code, "5DB3", 4));
+	assert( !strncmp( code, "5DB3", 4 ) );
 
 	return 0;
 }
 
 void Process( Object* obj, Location_t locations[], const char* movements[], int count )
 {
-	for( int i = 0; i < count; ++i ){
+	for( int i = 0; i < count; ++i ) {
 		auto m = movements[ i ];
 
-		int len = strlen(m);
+		int len = strlen( m );
 		for( int j = 0; j < len; ++j )
-			obj->Move(m[ j ]);
+			obj->Move( m[ j ] );
 
 		locations[ i ] = obj->Location;
 	}
@@ -138,13 +141,17 @@ void Process( Object* obj, Location_t locations[], const char* movements[], int 
 
 void CreateCode( char code[], Location_t locations[], int count )
 {
-	for( int i = 0; i < count; ++i ){
-		auto l = &locations[ i ];
+	for( int i = 0; i < count; ++i )
+		code[ i ] = CreateCode( locations[ i ] );
+}
 
-		int ix = ( 5 * l->Y ) + l->X;
+char CreateCode( const Location_t& l )
+{
+	int ix = (5 * l.Y) + l.X;
+	if( ix < 0 || ix > 24 )
+		return 'n';
 
-		code[ i ] = "nnDnnnABCn56789n234nnn1nn"[ ix ];
-	}
+	return "nnDnnnABCn56789n234nnn1nn"[ ix ];
 }
 
 }
