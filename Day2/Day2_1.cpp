@@ -27,25 +27,34 @@ public:
 
 	void Move( char dir )
 	{
+		auto l = Location;
+
 		switch( dir )
 		{
 		case 'U':
-			if( Location.Y < 2 )
-				++Location.Y;
+			++l.Y;
 			break;
 		case 'R':
-			if( Location.X < 2 )
-				++Location.X;
+			++l.X;
 			break;
 		case 'D':
-			if( Location.Y > 0 )
-				--Location.Y;
+			--l.Y;
 			break;
 		case 'L':
-			if( Location.X > 0 )
-				--Location.X;
+			--l.X;
 			break;
 		}
+
+		if( IsValid( l ) )
+			Location = l;
+	}
+
+	bool IsValid( const Location_t& l )
+	{
+		if( l.X < 0 || l.X > 2 || l.Y < 0 || l.Y > 2 )
+			return false;
+
+		return true;
 	}
 };
 
