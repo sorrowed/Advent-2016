@@ -59,7 +59,7 @@ void Read( std::vector<RoomId>* dst )
 	}
 }
 
-int Day4_Test(int argc, char* argv[]){
+int Day4_Test( void ){
 
 	RoomId r1( "aaaaa-bbb-z-y-x-123[abxyz]" );
 	assert( r1.code == "aaaaa-bbb-z-y-x" );

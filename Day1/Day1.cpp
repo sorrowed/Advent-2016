@@ -6,23 +6,23 @@
  */
 
 #include "Day1.h"
-
 #include "Object.h"
 
 #include <cassert>
 
+namespace Day01
+{
 static void Process( Object* obj, const char* movements[], int count );
 
-int Day1( int argc, char* argv[] )
+int Day1_Test( void )
 {
-	Object obj;
-
 	/*
 	 Following R2, L3 leaves you 2 blocks East and 3 blocks North, or 5 blocks away.
 	 R2, R2, R2 leaves you 2 blocks due South of your starting position, which is 2 blocks away.
 	 R5, L5, R5, R3 leaves you 12 blocks away.
 	 */
 
+	Object obj;
 	const char* m1[] = { "R2", "L3" };
 	obj.Reset();
 	Process( &obj, m1, 2 );
@@ -39,6 +39,13 @@ int Day1( int argc, char* argv[] )
 	obj.Reset();
 	Process( &obj, m3, 4 );
 	assert( obj.Location.X + obj.Location.Y == 12 );
+
+	return -1;
+}
+
+int Day1( int argc, char* argv[] )
+{
+	Object obj;
 
 	const char* m4[] = { "R2", "L3", "R2", "R4", "L2", "L1", "R2", "R4", "R1", "L4", "L5", "R5", "R5", "R2", "R2", "R1",
 		"L2", "L3", "L2", "L1", "R3", "L5", "R187", "R1", "R4", "L1", "R5", "L3", "L4", "R50", "L4", "R2", "R70", "L3",
@@ -67,4 +74,6 @@ void Process( Object* obj, const char* movements[], int count )
 
 		obj->Move( mov );
 	}
+}
+
 }

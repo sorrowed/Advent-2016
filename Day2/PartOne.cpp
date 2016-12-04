@@ -5,6 +5,9 @@
 #include <string>
 #include <cstring>
 
+namespace Day02_01
+{
+
 class Object
 {
 public:
@@ -70,6 +73,11 @@ int Day2_Part1( int argc, char* argv[] )
 	return 0;
 }
 
+int Day2_Part1_Test( void )
+{
+	return -1;
+}
+
 void Process( Object* obj, Location_t locations[], const char* movements[], int count )
 {
 	for( int i = 0; i < count; ++i ) {
@@ -93,4 +101,6 @@ void CreateCode( char code[], Location_t locations[], int count )
 
 		code[ i ] = "789456123"[ ix ];
 	}
+}
+
 }

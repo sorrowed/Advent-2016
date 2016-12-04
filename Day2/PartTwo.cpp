@@ -11,12 +11,15 @@
 #include <cstring>
 #include <cassert>
 
-class Object2
+namespace Day02_02
+{
+
+class Object
 {
 public:
 	Location_t Location;
 
-	Object2()
+	Object()
 	{
 		Reset();
 	}
@@ -72,7 +75,7 @@ public:
 	}
 };
 
-static void Process( Object2* obj, Location_t locations[], const char* movements[], int count );
+static void Process( Object* obj, Location_t locations[], const char* movements[], int count );
 static void CreateCode( char code[], Location_t locations[], int count );
 
 int Day2_Part2( int argc, char* argv[] )
@@ -85,7 +88,7 @@ int Day2_Part2( int argc, char* argv[] )
 		"DUULULUUDUDLLRLRURULLDLRRLURDLLDUDUDDRURRLUDULULDRRDRLUULUDDLUURURDLDDDRDRUDURLDDLUDUURULRRUUDRLURRLRLDURRRULRLDDDRUDDDDDUDDULLLRRLLDULDRULUDLRRDLLUDRDLDULRLLLUULLRULRLLLLUDDRRDRLULDLDLURDDRUDDLDLDLDRULDLLDDUUDULUULULLURDURRLLUDRULLRDUDRDRURDRDRDURUUDULDDRURUDLLUUDUUDURDLRDRURUDRUURLUUURLRLUDRUDRUURLLUDRLURDDURRUDRDRLRRLDDDRDDLUUUDDLULDUURUDUDLLDRURDURRDULRLURRDLDDRLUDRLDLRLDDUURRULDDLDUDDLRDULLDDDLDUUUUDLRUDUDLDRDLRDDLDLRLLUDDRRLUDLDUUULLDDRLRRDLRRRRUDDLRLLULRLRDURDUDDRRULLDDLDLRRDLLULDURURDDURLRLULULURRUDUDRDLURULDUDLUULDUUURLLRUDLLRDLRUDRLULDUDRRDUUDUUULUUUDDRUD"
 	};
 
-	Object2 obj;
+	Object obj;
 	Location_t locations[ 5 ];
 	char code[ 5 ];
 
@@ -96,7 +99,7 @@ int Day2_Part2( int argc, char* argv[] )
 	return 0;
 }
 
-int Day2_Part2_Test1( int argc, char* argv[] )
+int Day2_Part2_Test( void )
 {
 	const char* input[] = {
 		"ULL",
@@ -105,7 +108,7 @@ int Day2_Part2_Test1( int argc, char* argv[] )
 		"UUUUD"
 	};
 
-	Object2 obj;
+	Object obj;
 	Location_t locations[ 4 ];
 	char code[ 4 ];
 
@@ -118,7 +121,7 @@ int Day2_Part2_Test1( int argc, char* argv[] )
 	return 0;
 }
 
-void Process( Object2* obj, Location_t locations[], const char* movements[], int count )
+void Process( Object* obj, Location_t locations[], const char* movements[], int count )
 {
 	for( int i = 0; i < count; ++i ){
 		auto m = movements[ i ];
@@ -140,4 +143,6 @@ void CreateCode( char code[], Location_t locations[], int count )
 
 		code[ i ] = "nnDnnnABCn56789n234nnn1nn"[ ix ];
 	}
+}
+
 }

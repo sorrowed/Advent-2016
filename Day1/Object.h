@@ -24,7 +24,8 @@ public:
 	Location_t Location;
 	Heading_e Heading;
 
-	Object()
+	Object() :
+		Location(), Heading()
 	{
 		Reset();
 	}
@@ -37,6 +38,7 @@ public:
 	{
 		Location.X = Location.Y = 0;
 		Heading = Heading_e::North;
+
 		twice = nullptr;
 		locations.clear();
 		addLocation();

@@ -7,6 +7,11 @@
 
 #include "PartOne.h"
 
+#include <fstream>
+#include <algorithm>
+#include <sstream>
+#include <vector>
+
 class Triangle
 {
 public:
@@ -31,11 +36,6 @@ public:
 		return true;
 	}
 };
-
-#include <fstream>
-#include <algorithm>
-#include <sstream>
-#include <vector>
 
 void Read1( std::vector<Triangle>* dst )
 {
@@ -68,6 +68,11 @@ int Day3_Part1( int argc, char* argv[] )
 	return std::count_if( triangles.begin(), triangles.end(), [](const Triangle& t) {return t.IsValid();} );
 }
 
+int Day3_Test( void )
+{
+	return -1;
+}
+
 void Read2( std::vector<Triangle>* dst )
 {
 	dst->clear();
@@ -85,11 +90,9 @@ void Read2( std::vector<Triangle>* dst )
 
 		for( int i = 0; i < 3; ++i ) {
 
-			int a;
+			int a, b, c;
 			iss1 >> a;
-			int b;
 			iss2 >> b;
-			int c;
 			iss3 >> c;
 
 			dst->push_back( Triangle( a, b, c ) );
