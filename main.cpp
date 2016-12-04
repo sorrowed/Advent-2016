@@ -9,7 +9,11 @@
 #include "Day2/PartOne.h"
 #include "Day2/PartTwo.h"
 #include "Day3/PartOne.h"
+#include "Day4/PartOne.h"
 
 int main(int argc, char *argv[]) {
-	return Day3_Part1( argc, argv);
+
+	Day4_Test( 0, nullptr );
+	Day4_Part1( argc, argv);
+	return Day4_Part2( argc, argv);
 }
