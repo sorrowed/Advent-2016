@@ -55,6 +55,8 @@ int Day1(int argc, char* argv[]) {
 	obj.Reset();
 
 	Process(&obj, m4, sizeof(m4) / sizeof(const char*));
+
+	return 0;
 }
 
 void Process(Object* obj, const char* movements[], int count) {
