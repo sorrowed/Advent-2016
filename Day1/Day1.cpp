@@ -10,7 +10,7 @@
 
 #include <cassert>
 
-namespace Day01
+namespace Day1
 {
 static void Process( Object* obj, const char* movements[], int count );
 

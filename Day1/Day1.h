@@ -1,14 +1,7 @@
-/*
- * Main.h
- *
- *  Created on: Dec 2, 2016
- *      Author: tom
- */
-
 #ifndef DAY1_H_
 #define DAY1_H_
 
-namespace Day01
+namespace Day1
 {
 int Day1_Test( void );
 

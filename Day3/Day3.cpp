@@ -5,12 +5,11 @@
  *      Author: tom
  */
 
-#include "PartOne.h"
-
 #include <fstream>
 #include <algorithm>
 #include <sstream>
 #include <vector>
+#include "Day3.h"
 
 class Triangle
 {

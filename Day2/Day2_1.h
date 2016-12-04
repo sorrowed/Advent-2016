@@ -1,10 +1,11 @@
-#ifndef DAY2_H_
-#define DAY2_H_
+#ifndef DAY2_1_H_
+#define DAY2_1_H_
 
-namespace Day02_01
+namespace Day2_1
 {
 int Day2_Part1_Test( void );
 int Day2_Part1( int argc, char* argv[] );
 }
 
-#endif
+#endif	// DAY2_1_H_
+
