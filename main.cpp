@@ -12,6 +12,7 @@
 #include "Day4/Day4.h"
 #include "Day5/Day5.h"
 #include "Day6/Day6.h"
+#include "Day7/Day7.h"
 
 int main( int argc, char *argv[] )
 {
@@ -29,11 +30,15 @@ int main( int argc, char *argv[] )
 	Day5_Test();
 	Day5_Part1( argc, argv );
 	Day5_Part2( argc, argv );
-*/
 
 	Day6_Test();
 	Day6_Part1( argc, argv );
 	Day6_Part2( argc, argv );
+*/
+
+	Day7_Test();
+	Day7_Part1( argc, argv );
+	Day7_Part2( argc, argv );
 
 	return 0;
 }

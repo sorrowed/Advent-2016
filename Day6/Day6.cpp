@@ -1,15 +1,18 @@
 /*
  * Day6.cpp
+
  *
  *  Created on: Dec 6, 2016
  *      Author: tom
  */
-#include <algorithm>
-#include <cassert>
+#include "Common.h"
+
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <cassert>
 #include <map>
-#include <fstream>
+
 
 static inline
 bool Forward( const std::pair<char, int>& a, const std::pair<char, int>& b )
@@ -54,25 +57,11 @@ std::string Decode( std::vector<std::string> input, int len, bool reverse )
 	return secret;
 }
 
-void Read( std::vector<std::string>* dst )
-{
-	dst->clear();
-
-	std::ifstream file( "input.txt", std::ifstream::in );
-	std::string line;
-
-	std::getline( file, line );
-	while( file.good() ) {
-		dst->push_back( line );
-		std::getline( file, line );
-	}
-}
-
 int Day6_Part1( int argc, char* argv[] )
 {
 	std::vector<std::string> input;
 
-	Read( &input );
+	Read( "input.txt", &input );
 
 	auto secret = Decode( input, 8, false );
 
@@ -83,7 +72,7 @@ int Day6_Part2( int argc, char* argv[] )
 {
 	std::vector<std::string> input;
 
-	Read( &input );
+	Read( "input.txt", &input );
 
 	auto secret = Decode( input, 8, true );
 
