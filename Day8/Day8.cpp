@@ -7,47 +7,90 @@
 #include "Day8.h"
 #include "Common.h"
 
+#include <iostream>
 #include <sstream>
 #include <cstring>
 #include <cassert>
 
-struct Screen
+class ScreenBase
 {
-	const static int Width = 50;
-	const static int Height = 6;
+public:
+	virtual int GetWidth() const = 0;
+	virtual int GetHeight() const = 0;
 
-	char pixels[ Height ][ Width ];
+	virtual char GetPixel( int x, int y ) const = 0;
+	virtual void SetPixel( int x, int y, char v = '#' ) = 0;
 
-	Screen()
+	virtual ~ScreenBase()
 	{
-		Clear();
 	}
 
 	void Clear( void )
 	{
-		memset( pixels, 0, sizeof pixels );
+		for( int y = 0; y < GetHeight(); ++y ) {
+			for( int x = 0; x < GetWidth(); ++x ) {
+				SetPixel( x, y, ' ' );
+			}
+		}
 	}
 
 	int Count( void ) const
 	{
 		int count = 0;
-		for( int r = 0; r < Height; ++r ) {
-			for( int c = 0; c < Width; ++c ) {
-				if( pixels[ r ][ c ] )
+
+		for( int y = 0; y < GetHeight(); ++y ) {
+			for( int x = 0; x < GetWidth(); ++x ) {
+				if( GetPixel( x, y ) != ' ' )
 					++count;
 			}
 		}
+
 		return count;
 	}
 
-	void Letter( char dst[ Height ][ 5 ], int ix )
+	void Print( std::ostream& s )
 	{
-		for( int r = 0; r < Height; ++r ) {
-			for( int c = 0; c < 5; ++c ) {
-
-				dst[ r ][ c ] = pixels[ r ][ ix * 5 + c ];
+		for( int y = 0; y < GetHeight(); ++y ) {
+			for( int x = 0; x < GetWidth(); ++x ) {
+				s << GetPixel( x, y );
 			}
+			s << '\n';
 		}
+	}
+};
+
+template<int w, int h>
+struct Screen: public ScreenBase
+{
+	char pixels[ h ][ w ];
+
+	const int Width = w;
+	const int Height = h;
+
+	int GetWidth() const
+	{
+		return Width;
+	}
+
+	int GetHeight() const
+	{
+		return Height;
+	}
+
+	char GetPixel( int x, int y ) const
+	{
+		return pixels[ y ][ x ];
+	}
+
+	void SetPixel( int x, int y, char v )
+	{
+		pixels[ y ][ x ] = v;
+	}
+
+	Screen() :
+		ScreenBase()
+	{
+		Clear();
 	}
 };
 
@@ -55,9 +98,12 @@ class Oper
 {
 public:
 
-	virtual ~Oper(){};
+	virtual ~Oper()
+	{
+	}
+	;
 
-	virtual void Process( Screen* screen ) = 0;
+	virtual void Process( ScreenBase* screen ) = 0;
 
 };
 
@@ -73,11 +119,11 @@ public:
 
 	}
 
-	void Process( Screen* screen )
+	void Process( ScreenBase* screen )
 	{
-		for( int r = 0; r < Height; ++r ) {
-			for( int c = 0; c < Width; ++c )
-				screen->pixels[ r ][ c ] = '1';
+		for( int y = 0; y < Height; ++y ) {
+			for( int x = 0; x < Width; ++x )
+				screen->SetPixel( x, y );
 		}
 	}
 };
@@ -85,24 +131,24 @@ public:
 class RotateColumn: public Oper
 {
 public:
-	int Column;
+	int X;
 	int Count;
 
-	RotateColumn( int column, int count ) :
-		Column( column ), Count( count )
+	RotateColumn( int x, int count ) :
+		X( x ), Count( count )
 	{
 
 	}
 
-	void Process( Screen* screen )
+	void Process( ScreenBase* screen )
 	{
 		for( int m = 0; m < Count; ++m ) {
 
-			auto l = screen->pixels[ screen->Height - 1 ][ Column ];
-			for( int r = screen->Height - 1; r > 0; --r ) {
-				screen->pixels[ r ][ Column ] = screen->pixels[ r - 1 ][ Column ];
+			auto l = screen->GetPixel( X, screen->GetHeight() - 1 );
+			for( int y = screen->GetHeight() - 1; y > 0; --y ) {
+				screen->SetPixel( X, y, screen->GetPixel( X, y - 1 ) );
 			}
-			screen->pixels[ 0 ][ Column ] = l;
+			screen->SetPixel( X, 0, l );
 		}
 	}
 };
@@ -110,24 +156,24 @@ public:
 class RotateRow: public Oper
 {
 public:
-	int Row;
+	int Y;
 	int Count;
 
-	RotateRow( int row, int count ) :
-		Row( row ), Count( count )
+	RotateRow( int y, int count ) :
+		Y( y ), Count( count )
 	{
 
 	}
 
-	void Process( Screen* screen )
+	void Process( ScreenBase* screen )
 	{
 		for( int m = 0; m < Count; ++m ) {
 
-			auto l = screen->pixels[ Row ][ screen->Width - 1 ];
-			for( int c = screen->Width - 1; c > 0; --c ) {
-				screen->pixels[ Row ][ c ] = screen->pixels[ Row ][ c - 1 ];
+			auto l = screen->GetPixel( screen->GetWidth() - 1, Y );
+			for( int x = screen->GetWidth() - 1; x > 0; --x ) {
+				screen->SetPixel( x, Y, screen->GetPixel( x - 1, Y ) );
 			}
-			screen->pixels[ Row ][ 0 ] = l;
+			screen->SetPixel( 0, Y, l );
 		}
 	}
 };
@@ -168,7 +214,7 @@ Oper* ParseRotateColumn( std::stringstream& str )
 	return new RotateColumn( c, count );
 }
 
-void Process( Screen* screen, const std::vector<std::string> lines )
+void Process( ScreenBase* screen, const std::vector<std::string>& lines )
 {
 	for( const std::string& line : lines ) {
 		Oper* oper = nullptr;
@@ -197,7 +243,7 @@ void Process( Screen* screen, const std::vector<std::string> lines )
 
 int Day8_Part1( int argc, char* argv[] )
 {
-	Screen screen;
+	Screen<50, 6> screen;
 
 	std::vector<std::string> lines;
 	Read( "input.txt", &lines );
@@ -209,24 +255,21 @@ int Day8_Part1( int argc, char* argv[] )
 
 int Day8_Part2( int argc, char* argv[] )
 {
-	Screen screen;
+	Screen<50, 6> screen;
 
 	std::vector<std::string> lines;
 	Read( "input.txt", &lines );
 
 	Process( &screen, lines );
 
-	char letter[ Screen::Height ][ 5 ];
+	screen.Print( std::cout );
 
-	for( int i = 0; i < 10; ++i ) {
-		screen.Letter( letter, i );
-	}
 	return -1;
 }
 
 int Day8_Test( void )
 {
-	Screen screen;
+	Screen<5, 6> screen;
 
 	Rect o1( 3, 2 );
 	o1.Process( &screen );
