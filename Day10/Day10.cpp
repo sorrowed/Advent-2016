@@ -23,22 +23,31 @@ using std::vector;
 
 struct Exchanger
 {
-	Exchanger( int id ) :
-		Id( id ), Low( -1 ), High( -1 )
-	{
-	}
-
 	int Id;
 	int Low;
 	int High;
 
-	pair<int, int> Compares;
-
-	void Assign( int value )
+	bool CanAssign( void ) const
 	{
-		if( High != -1 && Low != -1 )
-			; //Error
-		else if( High == -1 )
+		return Low == -1 || High == -1;
+	}
+
+	bool CanExchange( void ) const
+	{
+		return Low != -1 && High != -1;
+	}
+
+	Exchanger( int id ) :
+			Id( id ), Low( -1 ), High( -1 )
+	{
+	}
+
+	bool Assign( int value )
+	{
+		if( !CanAssign() )
+			return false;
+
+		if( High == -1 )
 			High = value;
 		else
 			Low = value;
@@ -46,10 +55,21 @@ struct Exchanger
 		if( High < Low )
 			std::swap( High, Low );
 
-		if( High != -1 && Low != -1 )
-			Compares.first = Low, Compares.second = High;
+		return true;
 	}
 
+	bool Exchange( shared_ptr<Exchanger> low, shared_ptr<Exchanger> high )
+	{
+		if( !CanExchange() )
+			return false;
+
+		GiveLow( low );
+		GiveHigh( high );
+
+		return true;
+	}
+
+private:
 	void GiveLow( shared_ptr<Exchanger> target )
 	{
 		if( Low == -1 )
@@ -73,7 +93,7 @@ struct Exchanger
 
 stringstream& skip( stringstream& str, char v, int c )
 {
-	while( str && c ) {
+	while( str && c ){
 		if( str.get() == v )
 			--c;
 	}
@@ -83,128 +103,126 @@ stringstream& skip( stringstream& str, char v, int c )
 map<int, shared_ptr<Exchanger>> Bots;
 map<int, shared_ptr<Exchanger>> Outputs;
 
-static inline
-shared_ptr<Exchanger> WhenExists( map<int, shared_ptr<Exchanger>> &m, int id )
+static inline shared_ptr<Exchanger> GetExchanger( map<int, shared_ptr<Exchanger>> &m, int id )
 {
-	return m.count( id ) > 0 ? m[ id ] : nullptr;
+	if( m.count( id ) == 0 )
+		m[id] = make_shared<Exchanger>( id );
+
+	return m[id];
 }
 
-class Op
+struct Op
 {
-public:
-	virtual void Execute( void )=0;
+	virtual bool Execute() = 0;
 };
 
 struct ExchangeOp: Op
 {
-	int srcId;
+	int Id;
 
-	string typeLow;
-	int dstLow;
+	string LowType;
+	int LowDst;
 
-	string typeHigh;
-	int dstHigh;
+	string HighType;
+	int HighDst;
 
 	void Parse( stringstream& str )
 	{
-		str >> srcId;
+		str >> Id;
 		skip( str, ' ', 4 );
 
-		getline( str, typeLow, ' ' );
-		str >> dstLow;
+		getline( str, LowType, ' ' );
+		str >> LowDst;
 		skip( str, ' ', 4 );
 
-		getline( str, typeHigh, ' ' );
-		str >> dstHigh;
+		getline( str, HighType, ' ' );
+		str >> HighDst;
 	}
 
-	void Execute()
+	bool Execute()
 	{
-		auto s = WhenExists( Bots, srcId );
-		if( s == nullptr )
-			return;
+		auto s = GetExchanger( Bots, Id );
 
 		shared_ptr<Exchanger> low = nullptr;
-		if( typeLow == "bot" )
-			low = WhenExists( Bots, dstLow );
-		else if( typeLow == "output" )
-			low = WhenExists( Outputs, dstLow );
-
-		if( low != nullptr )
-			s->GiveLow( low );
+		if( LowType == "bot" )
+			low = GetExchanger( Bots, LowDst );
+		else if( LowType == "output" )
+			low = GetExchanger( Outputs, LowDst );
 
 		shared_ptr<Exchanger> high = nullptr;
-		if( typeHigh == "bot" )
-			high = WhenExists( Bots, dstHigh );
-		else if( typeHigh == "output" )
-			high = WhenExists( Outputs, dstHigh );
-		if( high != nullptr )
-			s->GiveHigh( high );
+		if( HighType == "bot" )
+			high = GetExchanger( Bots, HighDst );
+		else if( HighType == "output" )
+			high = GetExchanger( Outputs, HighDst );
+
+		return s->Exchange( low, high );
 	}
 };
 
 struct AssignOp: Op
 {
-	int value;
-	int dst;
+	int Id;
+	int Value;
 
 	void Parse( stringstream& str )
 	{
-		str >> value;
+		str >> Value;
 		skip( str, ' ', 4 );
 
-		str >> dst;
+		str >> Id;
 	}
 
-	void Execute()
+	bool Execute()
 	{
-		if( Bots.count( dst ) == 0 )
-			Bots[ dst ] = make_shared<Exchanger>( dst );
+		auto s = GetExchanger( Bots, Id );
 
-		auto s = Bots[ dst ];
-		s->Assign( value );
+		return s->Assign( Value );
 	}
 };
 
 int Day10_Test( void )
 {
+	auto bot = GetExchanger( Bots, 2 );
+
 	AssignOp o;
-	o.value = 3;
-	o.dst = 1;
+	o.Value = 3;
+	o.Id = 1;
 	o.Execute();
 
-	o.value = 2;
-	o.dst = 2;
+	o.Value = 2;
+	o.Id = 2;
 	o.Execute();
 
-	o.value = 5;
-	o.dst = 2;
+	o.Value = 5;
+	o.Id = 2;
 	o.Execute();
+
+	assert( bot->Low == 2 && bot->High == 5 );
 
 	ExchangeOp e;
-	e.srcId = 2;
-	e.dstLow = 1;
-	e.typeLow = "bot";
-	e.dstHigh = 0;
-	e.typeHigh = "bot";
+	e.Id = 2;
+	e.LowDst = 1;
+	e.LowType = "bot";
+	e.HighDst = 0;
+	e.HighType = "bot";
 	e.Execute();
 
-	e.srcId = 1;
-	e.dstLow = 0;
-	e.typeLow = "output";
-	e.dstHigh = 0;
-	e.typeHigh = "bot";
+	e.Id = 1;
+	e.LowDst = 0;
+	e.LowType = "output";
+	e.HighDst = 0;
+	e.HighType = "bot";
 	e.Execute();
 
-	e.srcId = 0;
-	e.dstLow = 2;
-	e.typeLow = "output";
-	e.dstHigh = 0;
-	e.typeHigh = "output";
+	e.Id = 0;
+	e.LowDst = 2;
+	e.LowType = "output";
+	e.HighDst = 0;
+	e.HighType = "output";
 	e.Execute();
 
-	volatile pair<int, int> cmp = Bots[ 2 ]->Compares;
-	assert( cmp.first == 2 && cmp.second == 5 );
+
+
 
 	//string line = "bot 88 gives low to bot 51 and high to bot 42";
 	string line = "value 7 goes to bot 40";
@@ -212,12 +230,12 @@ int Day10_Test( void )
 	stringstream str( line );
 	string op;
 	getline( str, op, ' ' );
-	if( op == "bot" ) {
+	if( op == "bot" ){
 		ExchangeOp o;
 		o.Parse( str );
 
 		o.Execute();
-	} else if( op == "value" ) {
+	}else if( op == "value" ){
 		AssignOp o;
 		o.Parse( str );
 
@@ -225,6 +243,24 @@ int Day10_Test( void )
 	}
 
 	return -1;
+}
+
+void ReadOps( const vector<string>& lines, vector<pair<bool, shared_ptr<Op> > > ops )
+{
+	for( auto& line : lines ){
+		stringstream str( line );
+		string op;
+		getline( str, op, ' ' );
+		if( op == "bot" ){
+			auto o = make_shared<ExchangeOp>();
+			o->Parse( str );
+			ops.push_back( make_pair( false, o ) );
+		}else if( op == "value" ){
+			auto o = make_shared<AssignOp>();
+			o->Parse( str );
+			ops.push_back( make_pair( false, o ) );
+		}
+	}
 }
 
 int Day10_Part1( int argc, char* argv[] )
@@ -235,38 +271,17 @@ int Day10_Part1( int argc, char* argv[] )
 	vector<string> lines;
 	Read( "/home/tom/Projects/Advent-2016/Day10/input.txt", &lines );
 
-	vector<shared_ptr<Op> > ops;
+	vector<pair<bool, shared_ptr<Op> > > ops;
 
-	for( auto& line : lines ) {
+	ReadOps( lines, ops );
 
-		stringstream str( line );
-		string op;
-		getline( str, op, ' ' );
-		if( op == "bot" ) {
-			auto o = make_shared<ExchangeOp>();
-			o->Parse( str );
-			ops.push_back( o );
-		} else if( op == "value" ) {
-			auto o = make_shared<AssignOp>();
-			o->Parse( str );
-			ops.push_back( o );
+	while( true ){
+		for( auto& op : ops ){
+			op.second->Execute();
 		}
 	}
 
-	for( auto& op : ops )
-		op->Execute();
-
-	shared_ptr<Exchanger> bot = nullptr;
-	for( auto& kvp : Bots ) {
-		auto& b = kvp.second;
-
-		if( b->Low == 17 && b->High == 61 ) {
-			bot = b;
-			break;
-		}
-	}
-
-	return bot != nullptr ? bot->Id : -1;
+	return -1;
 }
 
 int Day10_Part2( int argc, char* argv[] )
