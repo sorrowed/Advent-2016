@@ -6,179 +6,17 @@
  */
 #include "Common.h"
 
-#include <utility>
-#include <map>
-#include <memory>
 #include <cassert>
-#include <string>
-#include <sstream>
+#include <iostream>
+#include <map>
+#include <utility>
+#include <chrono>
 
-using std::map;
-using std::shared_ptr;
-using std::pair;
+#include "Exchangers.h"
+#include "Operations.h"
+
+using std::make_pair;
 using std::make_shared;
-using std::string;
-using std::stringstream;
-using std::vector;
-
-struct Exchanger
-{
-	int Id;
-	int Low;
-	int High;
-
-	bool CanAssign( void ) const
-	{
-		return Low == -1 || High == -1;
-	}
-
-	bool CanExchange( void ) const
-	{
-		return Low != -1 && High != -1;
-	}
-
-	Exchanger( int id ) :
-			Id( id ), Low( -1 ), High( -1 )
-	{
-	}
-
-	bool Assign( int value )
-	{
-		if( !CanAssign() )
-			return false;
-
-		if( High == -1 )
-			High = value;
-		else
-			Low = value;
-
-		if( High < Low )
-			std::swap( High, Low );
-
-		return true;
-	}
-
-	bool Exchange( shared_ptr<Exchanger> low, shared_ptr<Exchanger> high )
-	{
-		if( !CanExchange() )
-			return false;
-
-		GiveLow( low );
-		GiveHigh( high );
-
-		return true;
-	}
-
-private:
-	void GiveLow( shared_ptr<Exchanger> target )
-	{
-		if( Low == -1 )
-			return;
-
-		target->Assign( Low );
-
-		Low = -1;
-	}
-
-	void GiveHigh( shared_ptr<Exchanger> target )
-	{
-		if( High == -1 )
-			return;
-
-		target->Assign( High );
-
-		High = -1;
-	}
-};
-
-stringstream& skip( stringstream& str, char v, int c )
-{
-	while( str && c ){
-		if( str.get() == v )
-			--c;
-	}
-	return str;
-}
-
-map<int, shared_ptr<Exchanger>> Bots;
-map<int, shared_ptr<Exchanger>> Outputs;
-
-static inline shared_ptr<Exchanger> GetExchanger( map<int, shared_ptr<Exchanger>> &m, int id )
-{
-	if( m.count( id ) == 0 )
-		m[id] = make_shared<Exchanger>( id );
-
-	return m[id];
-}
-
-struct Op
-{
-	virtual bool Execute() = 0;
-};
-
-struct ExchangeOp: Op
-{
-	int Id;
-
-	string LowType;
-	int LowDst;
-
-	string HighType;
-	int HighDst;
-
-	void Parse( stringstream& str )
-	{
-		str >> Id;
-		skip( str, ' ', 4 );
-
-		getline( str, LowType, ' ' );
-		str >> LowDst;
-		skip( str, ' ', 4 );
-
-		getline( str, HighType, ' ' );
-		str >> HighDst;
-	}
-
-	bool Execute()
-	{
-		auto s = GetExchanger( Bots, Id );
-
-		shared_ptr<Exchanger> low = nullptr;
-		if( LowType == "bot" )
-			low = GetExchanger( Bots, LowDst );
-		else if( LowType == "output" )
-			low = GetExchanger( Outputs, LowDst );
-
-		shared_ptr<Exchanger> high = nullptr;
-		if( HighType == "bot" )
-			high = GetExchanger( Bots, HighDst );
-		else if( HighType == "output" )
-			high = GetExchanger( Outputs, HighDst );
-
-		return s->Exchange( low, high );
-	}
-};
-
-struct AssignOp: Op
-{
-	int Id;
-	int Value;
-
-	void Parse( stringstream& str )
-	{
-		str >> Value;
-		skip( str, ' ', 4 );
-
-		str >> Id;
-	}
-
-	bool Execute()
-	{
-		auto s = GetExchanger( Bots, Id );
-
-		return s->Assign( Value );
-	}
-};
 
 int Day10_Test( void )
 {
@@ -221,9 +59,6 @@ int Day10_Test( void )
 	e.HighType = "output";
 	e.Execute();
 
-
-
-
 	//string line = "bot 88 gives low to bot 51 and high to bot 42";
 	string line = "value 7 goes to bot 40";
 
@@ -245,7 +80,7 @@ int Day10_Test( void )
 	return -1;
 }
 
-void ReadOps( const vector<string>& lines, vector<pair<bool, shared_ptr<Op> > > ops )
+void ReadOps( const vector<string>& lines, vector<pair<bool, shared_ptr<Op> > >& ops )
 {
 	for( auto& line : lines ){
 		stringstream str( line );
@@ -268,23 +103,60 @@ int Day10_Part1( int argc, char* argv[] )
 	Bots.clear();
 	Outputs.clear();
 
+	// Read ops from file
 	vector<string> lines;
 	Read( "/home/tom/Projects/Advent-2016/Day10/input.txt", &lines );
 
 	vector<pair<bool, shared_ptr<Op> > > ops;
-
 	ReadOps( lines, ops );
 
-	while( true ){
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+	// Execute them as long as there are executable ops left
+	bool busy = false;
+	do{
+		busy = false;
 		for( auto& op : ops ){
-			op.second->Execute();
+			if( !op.first ){
+				op.first |= op.second->Execute();
+
+				busy |= op.first;
+			}
+		}
+	}while( busy );
+
+	std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
+	auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+
+	shared_ptr<Exchanger> target = nullptr;
+
+	for( auto& kvp : Bots ){
+		auto& bot = kvp.second;
+
+		for( auto& p : bot->Exchanges ){
+			std::cout << "Bot " << bot->Id << " exchanged " << p.first << " and " << p.second << '\n';
+
+			if( p.first == 17 && p.second == 61 )
+				target = bot;
 		}
 	}
+
+	std::cout << "Answer for part 1 : " << target->Id << " in " << elapsed << "[us]\n";
 
 	return -1;
 }
 
 int Day10_Part2( int argc, char* argv[] )
 {
+	for( auto& kvp : Outputs ){
+		auto& out = kvp.second;
+
+		std::cout << "Output " << out->Id << " has " << out->High << '\n';
+	}
+
+	int p = Outputs[0]->High * Outputs[1]->High * Outputs[2]->High;
+
+	std::cout << "Answer for part 2 : " << p << '\n';
+
 	return -1;
 }
