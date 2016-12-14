@@ -9,15 +9,17 @@
 #include <vector>
 #include <queue>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <algorithm>
+#include <cassert>
 
 static inline uint64_t Demo( int x, int y )
 {
 	return 10 + (x * x) + (3 * x) + (2 * x * y) + y + (y * y);
 }
 
-static inline uint64_t Part1( int x, int y )
+static inline uint64_t Own( int x, int y )
 {
 	return 1358 + (x * x) + (3 * x) + (2 * x * y) + y + (y * y);
 }
@@ -27,12 +29,7 @@ bool IsOpenSpace( int x, int y, uint64_t (*fn)( int, int ) )
 {
 	auto code = fn( x, y );
 
-	int count = 0;
-	for( int s = 0; s < 64; ++s ) {
-		if( code & 0x1UL )
-			++count;
-		code >>= 1;
-	}
+	int count =  __builtin_popcount( code );
 
 	return count % 2 == 0;
 }
@@ -112,22 +109,6 @@ void BreadthFirst( std::vector<Location>& path, const Location& start, const Loc
 	std::reverse( path.begin(), path.end() );
 }
 
-int Day13_Part1( int argc, char* argv[] )
-{
-	CreateNeighbors( 50, 50, Part1 );
-
-	std::vector<Location> path;
-
-	BreadthFirst( path, std::make_tuple( 1, 1 ), std::make_tuple( 31, 39 ) );
-
-	return path.size() - 1; // Should yield 96
-}
-
-int Day13_Part2( int argc, char* argv[] )
-{
-	return -1;
-}
-
 int Day13_Test( void )
 {
 	CreateNeighbors( 10, 10, Demo );
@@ -136,6 +117,51 @@ int Day13_Test( void )
 
 	BreadthFirst( path, std::make_tuple( 1, 1 ), std::make_tuple( 7, 4 ) );
 
+	assert( path.size() - 1 == 11 );
+
 	return path.size() - 1;
 }
+
+int Day13_Part1( int argc, char* argv[] )
+{
+	CreateNeighbors( 50, 50, Own );
+
+	std::vector<Location> path;
+
+	BreadthFirst( path, std::make_tuple( 1, 1 ), std::make_tuple( 31, 39 ) );
+
+	return path.size() - 1; // Should yield 96
+}
+
+void Traverse( std::unordered_set<Location,Hash>& unique, const std::vector<Location>& locations, int maxdepth )
+{
+	if( maxdepth == 0 )
+		return;
+
+	--maxdepth;
+
+	for( auto& l : locations )
+	{
+		if( unique.count( l ) != 0 )
+			continue;
+
+		unique.insert( l );
+
+		Traverse( unique, neighbors[ l ], maxdepth );
+	}
+}
+
+int Day13_Part2( int argc, char* argv[] )
+{
+	CreateNeighbors( 100, 100, Own );
+
+	auto start = std::make_tuple( 1, 1 );
+	std::unordered_set<Location, Hash> unique;
+
+	unique.insert( start );
+	Traverse( unique, neighbors[ start ], 50 );
+
+	return -1;
+}
+
 
