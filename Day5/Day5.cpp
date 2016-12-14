@@ -6,12 +6,13 @@
  */
 #include "Day5.h"
 
+#include "md5.h"
+
 #include <cstdio>
 #include <cassert>
 #include <cstring>
 #include <cinttypes>
 
-extern "C" void md5( const uint8_t *initial_msg, size_t initial_len, uint8_t *digest );
 
 static inline
 bool StartsWithZeros( unsigned char hash[ 16 ] )

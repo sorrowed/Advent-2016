@@ -60,7 +60,7 @@ uint32_t to_int32(const uint8_t *bytes)
         | ((uint32_t) bytes[3] << 24);
 }
  
-void md5(const uint8_t *initial_msg, size_t initial_len, uint8_t *digest) {
+void md5(const uint8_t *initial_msg, int initial_len, uint8_t *digest) {
  
     // These vars will contain the hash
     register uint32_t h0, h1, h2, h3;
@@ -68,7 +68,7 @@ void md5(const uint8_t *initial_msg, size_t initial_len, uint8_t *digest) {
     // Message (to prepare)
     uint8_t *msg = NULL;
  
-    size_t new_len, offset;
+    int new_len, offset;
     uint32_t w[16];
     register uint32_t a, b, c, d, i, f, temp;
  

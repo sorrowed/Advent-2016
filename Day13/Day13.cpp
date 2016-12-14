@@ -29,12 +29,13 @@ bool IsOpenSpace( int x, int y, uint64_t (*fn)( int, int ) )
 {
 	auto code = fn( x, y );
 
-	int count =  __builtin_popcount( code );
+	int count = __builtin_popcount( code );
 
 	return count % 2 == 0;
 }
 
 typedef std::tuple<int, int> Location;
+typedef std::tuple<int, int, int> LocationEx;
 
 std::map<Location, std::vector<Location>> neighbors;
 
@@ -70,10 +71,20 @@ public:
 	}
 };
 
+class HashEx
+{
+public:
+	size_t operator()( const LocationEx& l ) const
+	{
+		return std::get<0>( l ) << 16 || std::get<1>( l );
+	}
+};
+
 /*
  * Very much obliged : http://www.redblobgames.com/pathfinding/a-star/implementation.html
  */
-void BreadthFirst( std::vector<Location>& path, const Location& start, const Location& end )
+std::vector<Location> BreadthFirst( const Location& start, const Location& end,
+	std::map<Location, std::vector<Location>>& neighbors )
 {
 	std::queue<Location> frontier;
 	frontier.push( start );
@@ -93,13 +104,12 @@ void BreadthFirst( std::vector<Location>& path, const Location& start, const Loc
 			if( !came_from.count( next ) ) {
 				frontier.push( next );
 
-				//++std::get<2>( current );
-
 				came_from[ next ] = current;
 			}
 		}
 	}
 
+	std::vector<Location> path;
 	auto current = end;
 	path.push_back( current );
 	while( current != start ) {
@@ -107,15 +117,15 @@ void BreadthFirst( std::vector<Location>& path, const Location& start, const Loc
 		path.push_back( current );
 	}
 	std::reverse( path.begin(), path.end() );
+
+	return path;
 }
 
 int Day13_Test( void )
 {
 	CreateNeighbors( 10, 10, Demo );
 
-	std::vector<Location> path;
-
-	BreadthFirst( path, std::make_tuple( 1, 1 ), std::make_tuple( 7, 4 ) );
+	std::vector<Location> path = BreadthFirst( std::make_tuple( 1, 1 ), std::make_tuple( 7, 4 ), neighbors );
 
 	assert( path.size() - 1 == 11 );
 
@@ -126,42 +136,64 @@ int Day13_Part1( int argc, char* argv[] )
 {
 	CreateNeighbors( 50, 50, Own );
 
-	std::vector<Location> path;
-
-	BreadthFirst( path, std::make_tuple( 1, 1 ), std::make_tuple( 31, 39 ) );
+	std::vector<Location> path = BreadthFirst( std::make_tuple( 1, 1 ), std::make_tuple( 31, 39 ), neighbors );
 
 	return path.size() - 1; // Should yield 96
 }
 
-void Traverse( std::unordered_set<Location,Hash>& unique, const std::vector<Location>& locations, int maxdepth )
+void Traverse( std::unordered_set<LocationEx, HashEx>& unique, const Location& start,
+	std::map<Location, std::vector<Location>>& neighbors, int maxdepth )
 {
 	if( maxdepth == 0 )
 		return;
 
 	--maxdepth;
 
-	for( auto& l : locations )
-	{
-		if( unique.count( l ) != 0 )
+	for( auto& l : neighbors[ start ] ) {
+
+		auto le = LocationEx { std::get<0>( l ), std::get<1>( l ), maxdepth };
+
+		if( unique.count( le ) != 0 )
 			continue;
 
-		unique.insert( l );
+		unique.insert( le );
 
-		Traverse( unique, neighbors[ l ], maxdepth );
+		Traverse( unique, l, neighbors, maxdepth );
+	}
+}
+
+#include <iostream>
+void Print( int w, int h, std::unordered_set<LocationEx, HashEx>& marked )
+{
+	for( int y = 0; y < h; ++y ) {
+		for( int x = 0; x < w; ++x ) {
+
+			auto le = LocationEx { x, y, 0 };
+
+			if( marked.count( le ) > 0 )
+				std::cout << std::get<2>( *marked.find( le ) );
+			else
+			if( IsOpenSpace( x, y, Own ) )
+				std::cout << ' ';
+			else
+				std::cout << 'X';
+		}
+		std::cout << '\n';
 	}
 }
 
 int Day13_Part2( int argc, char* argv[] )
 {
-	CreateNeighbors( 100, 100, Own );
+	CreateNeighbors( 200, 200, Own );
 
-	auto start = std::make_tuple( 1, 1 );
-	std::unordered_set<Location, Hash> unique;
+	auto start = LocationEx { 1, 1, 0 };
+	std::unordered_set<LocationEx, HashEx> unique;
 
 	unique.insert( start );
-	Traverse( unique, neighbors[ start ], 50 );
+	Traverse( unique, Location { std::get<0>(start), std::get<1>(start) }, neighbors, 50 );
+
+	Print( 50, 50, unique );
 
 	return -1;
 }
-
 
