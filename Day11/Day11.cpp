@@ -10,84 +10,120 @@
 #include <vector>
 #include <utility>
 #include <cassert>
+#include <algorithm>
+#include <cinttypes>
 
 using std::array;
 using std::vector;
-using std::shared_ptr;
-using std::make_shared;
 
 enum item_type
 {
-	Generator, MicroChip, LastType
+	Generator = 0x01,
+	MicroChip = 0x02,
+	TypeMask = (Generator | MicroChip),
 };
 
 enum item_id
 {
-	Strontium, Plutonium, Thulium, Ruthenium, Curium, LastId
+	Strontium = 0,
+	Plutonium = 1,
+	Thulium = 2,
+	Ruthenium = 3,
+	Curium = 4,
+	LastId
 };
 
-struct item_t
+uint32_t make_state( item_id id, item_type t )
 {
-	item_type Type;
-	item_id Id;
+	return t << (id * 2);
+}
 
-	item_t( item_type t, item_id id ) :
-			Type( t ), Id( id )
-	{
+bool has_state( uint32_t state, item_id id, item_type t )
+{
+	auto s = make_state( id, t );
+	return (state & s) == s;
+}
+
+bool is_generator( uint32_t state )
+{
+	return (state & item_type::TypeMask) == item_type::Generator;
+}
+
+bool is_shielded( uint32_t state )
+{
+	auto s = (state & item_type::TypeMask);
+
+	return  s != item_type::MicroChip;
+}
+
+bool is_dangerous( uint32_t state )
+{
+	bool dangerous = false;
+	bool shielded = true;
+
+	while( state ) {
+
+		dangerous |= is_generator( state );
+		shielded &= is_shielded( state );
+
+		state >>= 2;
 	}
-};
 
-typedef shared_ptr<item_t>	itemptr_t;
-typedef vector<itemptr_t>	itemptrs_t;
-
-array<itemptrs_t, 4> floors;
-
-bool IsValid( const itemptr_t& a, const itemptr_t& b )
-{
-	return ( a->Type == MicroChip && b->Type == MicroChip ) || a->Id == b->Id;
+	return dangerous && !shielded;
 }
 
-bool IsValid( const itemptrs_t& items )
+void move( uint32_t* from, uint32_t* to, uint32_t modules )
 {
-	return false;
+	*from &= ~( modules );
+	*to |= modules;
 }
 
-void Init( void )
+vector<array<uint32_t, 4> > neighbors( array<uint32_t, 4> floors )
 {
-	auto f = &floors[ 0 ];
-	f->clear();
-	f->push_back( make_shared<item_t>( Generator, Strontium ) );
-	f->push_back( make_shared<item_t>( MicroChip, Strontium ) );
-	f->push_back( make_shared<item_t>( Generator, Plutonium ) );
-	f->push_back( make_shared<item_t>( MicroChip, Plutonium ) );
 
-	f = &floors[1];
-	f->clear();
-	f->push_back( make_shared<item_t>( Generator, Thulium ) );
-	f->push_back( make_shared<item_t>( Generator, Ruthenium ) );
-	f->push_back( make_shared<item_t>( MicroChip, Ruthenium ) );
-	f->push_back( make_shared<item_t>( Generator, Curium ) );
-	f->push_back( make_shared<item_t>( MicroChip, Curium ) );
+}
 
-	f = &floors[2];
-	f->clear();
-	f->push_back( make_shared<item_t>( MicroChip, Thulium ) );
+void init( array<uint32_t,4>& floors )
+{
+	floors[ 0 ] = make_state( Strontium, Generator ) |
+					make_state( Strontium, MicroChip ) |
+					make_state( Plutonium, Generator ) |
+					make_state( Plutonium, MicroChip );
 
-	f = &floors[3];
-	f->clear();
+	floors[ 1 ] = make_state( Thulium, Generator ) |
+					make_state( Ruthenium, Generator ) |
+					make_state( Ruthenium, MicroChip ) |
+					make_state( Curium, Generator ) |
+					make_state( Curium, MicroChip );
+
+	floors[ 2 ] = make_state( Thulium, MicroChip );
+
+	floors[ 3 ] = 0;
 }
 
 int Day11_Test( void )
 {
-	Init();
+	array<uint32_t,4> floors;
 
-	assert( IsValid( floors[0][0], floors[0][1] ) );
-	assert( IsValid( floors[0][2], floors[0][3] ) );
+	init( floors );
 
-	assert( IsValid( floors[0] ) );
-	assert( IsValid( floors[1] ) );
-	assert( IsValid( floors[2] ) );
-	assert( IsValid( floors[3] ) );
+	assert( has_state( floors[ 0 ], item_id::Strontium, item_type::Generator ) );
+	assert( has_state( floors[ 0 ], item_id::Strontium, item_type::MicroChip ) );
+	assert( has_state( floors[ 0 ], item_id::Plutonium, item_type::Generator ) );
+	assert( has_state( floors[ 0 ], item_id::Plutonium, item_type::MicroChip ) );
+
+	assert( has_state( floors[ 1 ], item_id::Thulium, item_type::Generator ) );
+	assert( has_state( floors[ 1 ], item_id::Ruthenium, item_type::Generator ) );
+	assert( has_state( floors[ 1 ], item_id::Ruthenium, item_type::MicroChip ) );
+	assert( has_state( floors[ 1 ], item_id::Curium, item_type::Generator ) );
+	assert( has_state( floors[ 1 ], item_id::Curium, item_type::MicroChip ) );
+
+	assert( has_state( floors[ 2 ], item_id::Thulium, item_type::MicroChip ) );
+
+	assert( !is_dangerous( floors[ 0 ] ) );
+	assert( !is_dangerous( floors[ 1 ] ) );
+	assert( !is_dangerous( floors[ 2 ] ) );
+	assert( !is_dangerous( floors[ 3 ] ) );
 
 	return -1;
 }

@@ -13,6 +13,4 @@ int Day14_Part2( int argc, char* argv[] );
 
 int Day14_Test( void );
 
-
-
 #endif /* DAY14_DAY14_H_ */

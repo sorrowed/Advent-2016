@@ -13,6 +13,7 @@
 #include <utility>
 #include <algorithm>
 #include <cassert>
+#include <iostream>
 
 static inline uint64_t Demo( int x, int y )
 {
@@ -34,32 +35,45 @@ bool IsOpenSpace( int x, int y, uint64_t (*fn)( int, int ) )
 	return count % 2 == 0;
 }
 
-typedef std::tuple<int, int> Location;
-typedef std::tuple<int, int, int> LocationEx;
-
-std::map<Location, std::vector<Location>> neighbors;
-
-void CreateNeighbors( int width, int height, uint64_t (*fn)( int, int ) )
+struct Location
 {
-	neighbors.clear();
+	int X;
+	int Y;
+	int L;
 
-	for( int x = 0; x < width; ++x ) {
-		for( int y = 0; y < height; ++y ) {
-
-			auto l = std::make_tuple( x, y );
-			if( x < width - 1 && IsOpenSpace( x + 1, y, fn ) )
-				neighbors[ l ].push_back( std::make_tuple( x + 1, y ) );
-
-			if( y < height - 1 && IsOpenSpace( x, y + 1, fn ) )
-				neighbors[ l ].push_back( std::make_tuple( x, y + 1 ) );
-
-			if( x > 0 && IsOpenSpace( x - 1, y, fn ) )
-				neighbors[ l ].push_back( std::make_tuple( x - 1, y ) );
-
-			if( y > 0 && IsOpenSpace( x, y - 1, fn ) )
-				neighbors[ l ].push_back( std::make_tuple( x, y - 1 ) );
-		}
+	Location() : Location( -1,-1,-1 ){}
+	Location( int x, int y, int l )
+	{
+		X = x;
+		Y = y;
+		L = l;
 	}
+
+	Location( int x, int y )
+	{
+		X = x;
+		Y = y;
+		L = -1;
+	}
+
+	bool IsValid() const { return X != -1 && Y != -1; }
+
+
+	static size_t Id( const Location& l ){
+		return l.X << 16 | l.Y;
+	}
+};
+
+bool operator==( const Location& a, const Location& b ) {
+	return a.X == b.X && a.Y == b.Y;
+}
+
+bool operator!=( const Location& a, const Location& b ) {
+	return !( a == b );
+}
+
+bool operator<( const Location& a, const Location& b ) {
+	return Location::Id( a ) < Location::Id( b );
 }
 
 class Hash
@@ -67,52 +81,75 @@ class Hash
 public:
 	size_t operator()( const Location& l ) const
 	{
-		return std::get<0>( l ) << 16 || std::get<1>( l );
+		return Location::Id( l );
 	}
 };
 
-class HashEx
+typedef std::map<Location, std::vector<Location>> neighbor_map;
+
+neighbor_map CreateNeighbors( int width, int height, uint64_t (*fn)( int, int ) )
 {
-public:
-	size_t operator()( const LocationEx& l ) const
-	{
-		return std::get<0>( l ) << 16 || std::get<1>( l );
+	neighbor_map neighbors;
+
+	for( int x = 0; x < width; ++x ) {
+		for( int y = 0; y < height; ++y ) {
+
+			Location l ( x, y );
+			if( x < width - 1 && IsOpenSpace( x + 1, y, fn ) )
+				neighbors[ l ].push_back( Location( x + 1, y ) );
+
+			if( y < height - 1 && IsOpenSpace( x, y + 1, fn ) )
+				neighbors[ l ].push_back( Location( x, y + 1 ) );
+
+			if( x > 0 && IsOpenSpace( x - 1, y, fn ) )
+				neighbors[ l ].push_back( Location( x - 1, y ) );
+
+			if( y > 0 && IsOpenSpace( x, y - 1, fn ) )
+				neighbors[ l ].push_back( Location( x, y - 1 ) );
+		}
 	}
-};
+
+	return neighbors;
+}
 
 /*
  * Very much obliged : http://www.redblobgames.com/pathfinding/a-star/implementation.html
  */
-std::vector<Location> BreadthFirst( const Location& start, const Location& end,
-	std::map<Location, std::vector<Location>>& neighbors )
+std::vector<Location> BreadthFirst( const Location& start, const Location& end, neighbor_map& neighbors )
 {
-	std::queue<Location> frontier;
-	frontier.push( start );
-
 	std::unordered_map<Location, Location, Hash> came_from;
-	came_from[ start ] = start;
+
+	Location s = start;
+	Location e = end;
+
+	s.L = 0;
+
+	std::queue<Location> frontier;
+	frontier.push( s );
+	came_from[ s ] = s;
 
 	while( !frontier.empty() ) {
 		auto current = frontier.front();
 		frontier.pop();
 
-		if( current == end )
+		if( current == e )
 			break;
 
 		for( auto next : neighbors[ current ] ) {
+			next.L = current.L + 1;
 
 			if( !came_from.count( next ) ) {
-				frontier.push( next );
 
+				frontier.push( next );
 				came_from[ next ] = current;
 			}
 		}
 	}
 
 	std::vector<Location> path;
-	auto current = end;
+	auto current = e;
 	path.push_back( current );
-	while( current != start ) {
+	while( current != s && current.IsValid() ) {
 		current = came_from[ current ];
 		path.push_back( current );
 	}
@@ -121,11 +158,46 @@ std::vector<Location> BreadthFirst( const Location& start, const Location& end,
 	return path;
 }
 
+void Traverse( std::unordered_set<Location, Hash> locations, const Location& start, neighbor_map& neighbors, int max )
+{
+	for( auto next : neighbors[ start ] ) {
+		next.L = start.L + 1;
+
+		Traverse( locations, next, neighbors, max );
+	}
+}
+
+void Print( int w, int h, std::vector<Location>& path )
+{
+	int count = 0;
+
+	for( int y = 0; y < h; ++y ) {
+		for( int x = 0; x < w; ++x ) {
+
+			auto l = std::find_if( path.begin(), path.end(),
+					[x,y]( const Location& i ) {return i.X == x && i.Y == y;} );
+
+			if( l != path.end() ) {
+				std::cout << std::hex << '0';//l->L;
+				++count;
+			}
+			else if( IsOpenSpace( x, y, Own ) )
+				std::cout << ' ';
+			else
+				std::cout << 'X';
+		}
+		std::cout << '\n';
+	}
+
+	std::cout << "Marked " << count << " unique locations\n";
+}
+
 int Day13_Test( void )
 {
-	CreateNeighbors( 10, 10, Demo );
+	auto neighbors = CreateNeighbors( 10, 10, Demo );
+	auto path = BreadthFirst( Location{ 1, 1, 0 }, Location{ 7, 4, 0 }, neighbors );
 
-	std::vector<Location> path = BreadthFirst( std::make_tuple( 1, 1 ), std::make_tuple( 7, 4 ), neighbors );
+	//Print( 10, 10, path );
 
 	assert( path.size() - 1 == 11 );
 
@@ -134,66 +206,26 @@ int Day13_Test( void )
 
 int Day13_Part1( int argc, char* argv[] )
 {
-	CreateNeighbors( 50, 50, Own );
+	auto neighbors = CreateNeighbors( 50, 50, Own );
+	auto path = BreadthFirst( Location{ 1, 1, 0 }, Location{ 31, 39, 0 }, neighbors );
 
-	std::vector<Location> path = BreadthFirst( std::make_tuple( 1, 1 ), std::make_tuple( 31, 39 ), neighbors );
+	//Print( 50, 50, path );
+
+	assert( path.size() - 1 == 96 );
 
 	return path.size() - 1; // Should yield 96
 }
 
-void Traverse( std::unordered_set<LocationEx, HashEx>& unique, const Location& start,
-	std::map<Location, std::vector<Location>>& neighbors, int maxdepth )
-{
-	if( maxdepth == 0 )
-		return;
-
-	--maxdepth;
-
-	for( auto& l : neighbors[ start ] ) {
-
-		auto le = LocationEx { std::get<0>( l ), std::get<1>( l ), maxdepth };
-
-		if( unique.count( le ) != 0 )
-			continue;
-
-		unique.insert( le );
-
-		Traverse( unique, l, neighbors, maxdepth );
-	}
-}
-
-#include <iostream>
-void Print( int w, int h, std::unordered_set<LocationEx, HashEx>& marked )
-{
-	for( int y = 0; y < h; ++y ) {
-		for( int x = 0; x < w; ++x ) {
-
-			auto le = LocationEx { x, y, 0 };
-
-			if( marked.count( le ) > 0 )
-				std::cout << std::get<2>( *marked.find( le ) );
-			else
-			if( IsOpenSpace( x, y, Own ) )
-				std::cout << ' ';
-			else
-				std::cout << 'X';
-		}
-		std::cout << '\n';
-	}
-}
-
 int Day13_Part2( int argc, char* argv[] )
 {
-	CreateNeighbors( 200, 200, Own );
+	auto neighbors = CreateNeighbors( 50, 50, Own );
 
-	auto start = LocationEx { 1, 1, 0 };
-	std::unordered_set<LocationEx, HashEx> unique;
+	std::unordered_set<Location, Hash> locations;
 
-	unique.insert( start );
-	Traverse( unique, Location { std::get<0>(start), std::get<1>(start) }, neighbors, 50 );
+	Traverse( locations, Location{ 1, 1, 0 }, neighbors, 50 );
 
-	Print( 50, 50, unique );
+	//Print( 50, 50, locations );
 
-	return -1;
+	return locations.size() - 1;
 }
 
