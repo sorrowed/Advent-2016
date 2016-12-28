@@ -70,7 +70,7 @@ void md5(const uint8_t *initial_msg, int initial_len, uint8_t *digest) {
  
     int new_len, offset;
     uint32_t w[16];
-    register uint32_t a, b, c, d, i, f, temp;
+    register uint32_t a, b, c, d, i;
  
     // Initialize variables - simple count in nibbles:
     h0 = 0x67452301;

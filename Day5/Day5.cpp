@@ -37,7 +37,7 @@ int Day5_Part1( int argc, char* argv[] )
 	unsigned char hash[ 16 ] = { 0 };
 
 	int number = 0, position = 0;
-	char password[ 8 ] = { 0 };
+	char password[ 9 ] = { 0 };
 
 	for( number = 0; position < 8; ++number ) {
 
@@ -47,6 +47,8 @@ int Day5_Part1( int argc, char* argv[] )
 			password[ position++ ] = hash[ 2 ] & 0x0F;
 		}
 	}
+
+	assert( !strcmp( password, "" ) );
 
 	return -1;
 }

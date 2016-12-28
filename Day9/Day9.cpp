@@ -55,9 +55,9 @@ string Decompress1( const string& input )
 	return out.str();
 }
 
-long Decompress2( const string& input )
+std::string::size_type Decompress2( const string& input )
 {
-	long l = 0;
+	std::string::size_type l = 0;
 
 	if( input.find( "(" ) == std::string::npos )
 		l = input.length();
