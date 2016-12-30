@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cinttypes>
 #include <iostream>
+#include "combinations.h"
 
 using std::array;
 using std::vector;
@@ -50,6 +51,8 @@ enum item_id
 	Thulium = 2,
 	Ruthenium = 3,
 	Curium = 4,
+	Elerium = 5,
+	Dilithium = 6,
 	LastId
 };
 
@@ -107,7 +110,7 @@ bool move( uint32_t* from, uint32_t* to, uint32_t modules )
 struct building_state
 {
 	int lift;
-	array<uint32_t, 4> floors;
+	uint32_t floors[ 4 ];
 
 	bool operator==(const building_state& state ) const
 	{
@@ -121,6 +124,15 @@ struct building_state
 	bool operator!=(const building_state& state ) const
 	{
 		return !( *this == state );
+	}
+
+	bool operator<(const building_state& state ) const
+	{
+		return floors[ 3 ] < state.floors[ 3 ] &&
+				floors[ 2 ] < state.floors[ 2 ] &&
+				floors[ 1 ] < state.floors[ 1 ] &&
+				floors[ 0 ] < state.floors[ 0 ] &&
+				lift < state.lift;
 	}
 
 	int Hash() const
@@ -146,11 +158,11 @@ unordered_set<uint32_t> combinations()
 	unordered_set<uint32_t> r;
 
 	for( uint32_t id = Strontium; id < LastId; ++id ) {
-		c.push_back( make_state( (item_id) id, item_type::Generator ) );
-		c.push_back( make_state( (item_id) id, item_type::MicroChip ) );
+		c.push_back( make_state( item_id( id ), item_type::Generator ) );
+		c.push_back( make_state( item_id( id ), item_type::MicroChip ) );
 
-		r.insert( make_state( (item_id) id, item_type::Generator ) );
-		r.insert( make_state( (item_id) id, item_type::MicroChip ) );
+		r.insert( make_state( item_id( id ), item_type::Generator ) );
+		r.insert( make_state( item_id( id ), item_type::MicroChip ) );
 	}
 
 	// Add non-dangerous combinations
@@ -160,10 +172,37 @@ unordered_set<uint32_t> combinations()
 		if( !is_dangerous( m ) )
 			r.insert( m );
 	}
-	while( std::next_permutation( c.begin(), c.end() ) );
+	while( next_combination( c.begin(), c.begin() + 2, c.end() ) );
 
 	return r;
 }
+
+/*!
+ *	Determine if this combination is a pair
+ *	If moving a pair of items (Generator + Microchip) any other pair of items (Generator + Microchip) would be
+ *	an equivalent move, so remove all but one.
+ */
+bool is_pair( uint32_t comb )
+{
+	return (comb & 0x00000003) == 0x00000003 ||
+			(comb & 0x0000000C) == 0x0000000C ||
+			(comb & 0x00000030) == 0x00000030 ||
+			(comb & 0x000000C0) == 0x000000C0 ||
+			(comb & 0x00000300) == 0x00000300 ||
+			(comb & 0x00000C00) == 0x00000C00 ||
+			(comb & 0x00003000) == 0x00003000 ||
+			(comb & 0x0000C000) == 0x0000C000 ||
+			(comb & 0x00030000) == 0x00030000 ||
+			(comb & 0x000C0000) == 0x000C0000 ||
+			(comb & 0x00300000) == 0x00300000 ||
+			(comb & 0x00C00000) == 0x00C00000 ||
+			(comb & 0x03000000) == 0x03000000 ||
+			(comb & 0x0C000000) == 0x0C000000 ||
+			(comb & 0x30000000) == 0x30000000 ||
+			(comb & 0xC0000000) == 0xC0000000;
+}
+
+unordered_set<building_state, Hash> visited;
 
 /*!
  * Determine possible next floor state/lift position
@@ -174,9 +213,15 @@ unordered_set<building_state, Hash> neighbors( const building_state& s )
 
 	static auto comb = combinations();
 
+	bool has_pair = false;
+
 	// Move lift up
 	if( s.lift < 3 ) {
 		for( uint32_t c : comb ) {
+
+			bool p = is_pair( c );
+			if( has_pair && p )
+				continue;
 
 			building_state next = s;
 
@@ -189,13 +234,26 @@ unordered_set<building_state, Hash> neighbors( const building_state& s )
 			if( is_dangerous( next.floors[ next.lift ] ) )
 				continue;
 
+			if( visited.count( next ) != 0 )
+				continue;
+
+			has_pair = p;
+
 			n.insert( next );
+
+			visited.insert( next );
 		}
 	}
+
+	has_pair = false;
 
 	// Move lift down
 	if( s.lift > 0 ) {
 		for( uint32_t c : comb ) {
+
+			bool p = is_pair( c );
+			if( has_pair && p )
+				continue;
 
 			building_state next = s;
 
@@ -208,7 +266,14 @@ unordered_set<building_state, Hash> neighbors( const building_state& s )
 			if( is_dangerous( next.floors[ next.lift ] ) )
 				continue;
 
+			if( visited.count( next ) != 0 )
+				continue;
+
+			has_pair = p;
+
 			n.insert( next );
+
+			visited.insert( next );
 		}
 	}
 
@@ -221,6 +286,8 @@ unordered_set<building_state, Hash> neighbors( const building_state& s )
 std::vector<building_state> BreadthFirst( const building_state& start, const building_state& end )
 {
 	std::unordered_map<building_state, building_state, Hash> came_from;
+
+	visited.clear();
 
 	std::queue<building_state> frontier;
 	frontier.push( start );
@@ -256,42 +323,90 @@ std::vector<building_state> BreadthFirst( const building_state& start, const bui
 	return path;
 }
 
-void init_building_start( building_state& s )
+double cost( const building_state& current, const building_state& next )
 {
-	s.floors[ 0 ] = make_state( Strontium, Generator ) |
-					make_state( Strontium, MicroChip ) |
-					make_state( Plutonium, Generator ) |
-					make_state( Plutonium, MicroChip );
-
-	s.floors[ 1 ] = make_state( Thulium, Generator ) |
-					make_state( Ruthenium, Generator ) |
-					make_state( Ruthenium, MicroChip ) |
-					make_state( Curium, Generator ) |
-					make_state( Curium, MicroChip );
-
-	s.floors[ 2 ] = make_state( Thulium, MicroChip );
-
-	s.floors[ 3 ] = 0;
-
-	s.lift = 0;
+	return 1;
 }
 
-void init_building_end( building_state& s )
+double heuristic( const building_state& next, const building_state& end )
 {
-	s.floors[ 0 ] = s.floors[ 1 ] = s.floors[ 2 ] = 0;
 
-	s.floors[ 3 ] = make_state( Strontium, Generator )	|
-					make_state( Strontium, MicroChip )	|
-					make_state( Plutonium, Generator )	|
-					make_state( Plutonium, MicroChip )	|
-					make_state( Thulium, Generator )	|
-					make_state( Ruthenium, Generator )	|
-					make_state( Ruthenium, MicroChip )	|
-					make_state( Curium, Generator )		|
-					make_state( Curium, MicroChip )		|
-					make_state( Thulium, MicroChip );
+	return __builtin_popcount( next.floors[ 3 ] ) * 1 +
+			__builtin_popcount( next.floors[ 2 ] ) * 2 +
+			__builtin_popcount( next.floors[ 1 ] ) * 3 +
+			__builtin_popcount( next.floors[ 0 ] ) * 4;
+}
 
-	s.lift = 3;
+using std::pair;
+using std::priority_queue;
+template<typename T, typename priority_t>
+struct PriorityQueue
+{
+	typedef pair<priority_t, T> PQElement;
+	priority_queue<PQElement, vector<PQElement>, std::greater<PQElement>> elements;
+
+	inline bool empty() const
+	{
+		return elements.empty();
+	}
+
+	inline void put( T item, priority_t priority )
+	{
+		elements.emplace( priority, item );
+	}
+
+	inline T get()
+	{
+		T best_item = elements.top().second;
+		elements.pop();
+		return best_item;
+	}
+};
+
+typedef unordered_map<building_state, building_state, Hash> building_state_map;
+typedef unordered_map<building_state, double, Hash> building_cost_map;
+
+std::vector<building_state> Astar( const building_state& start, const building_state& end )
+{
+	building_state_map came_from;
+	building_cost_map cost_so_far;
+
+	PriorityQueue<building_state, double> frontier;
+	frontier.put( start, 0 );
+
+	came_from[ start ] = start;
+	cost_so_far[ start ] = 0;
+
+	while( !frontier.empty() ) {
+		auto current = frontier.get();
+
+		if( current == end ) {
+			break;
+		}
+
+		auto n = neighbors( current );
+		for( auto next : n ) {
+			double new_cost = cost_so_far[ current ] + cost( current, next );
+			if( !cost_so_far.count( next ) || new_cost < cost_so_far[ next ] ) {
+				cost_so_far[ next ] = new_cost;
+				double priority = new_cost + heuristic( next, end );
+				frontier.put( next, priority );
+				came_from[ next ] = current;
+			}
+		}
+	}
+
+	vector<building_state> path;
+	building_state current = end;
+	path.push_back(current);
+	while (current != start) {
+	current = came_from[current];
+	path.push_back(current);
+	}
+	std::reverse(path.begin(), path.end());
+
+	return path;
+
 }
 
 std::ostream& print( std::ostream& str, item_id id )
@@ -312,6 +427,12 @@ std::ostream& print( std::ostream& str, item_id id )
 		break;
 		case item_id::Thulium:
 			str << "Thulium";
+		break;
+		case item_id::Elerium:
+			str << "Elerium";
+		break;
+		case item_id::Dilithium:
+			str << "Dilithium";
 		break;
 		default:
 			throw aoc_exception("Invalid item_id");
@@ -339,10 +460,93 @@ std::ostream& print( std::ostream& str, unordered_set<uint32_t>& combinations )
 	return str;
 }
 
+void init_building_start_pt1( building_state& s )
+{
+	s.floors[ 0 ] = make_state( Strontium, Generator ) |
+					make_state( Strontium, MicroChip ) |
+					make_state( Plutonium, Generator ) |
+					make_state( Plutonium, MicroChip );
+
+	s.floors[ 1 ] = make_state( Thulium, Generator ) |
+					make_state( Ruthenium, Generator ) |
+					make_state( Ruthenium, MicroChip ) |
+					make_state( Curium, Generator ) |
+					make_state( Curium, MicroChip );
+
+	s.floors[ 2 ] = make_state( Thulium, MicroChip );
+
+	s.floors[ 3 ] = 0;
+
+	s.lift = 0;
+}
+
+void init_building_end_pt1( building_state& s )
+{
+	s.floors[ 0 ] = s.floors[ 1 ] = s.floors[ 2 ] = 0;
+
+	s.floors[ 3 ] = make_state( Strontium, Generator )	|
+					make_state( Strontium, MicroChip )	|
+					make_state( Plutonium, Generator )	|
+					make_state( Plutonium, MicroChip )	|
+					make_state( Thulium, Generator )	|
+					make_state( Ruthenium, Generator )	|
+					make_state( Ruthenium, MicroChip )	|
+					make_state( Curium, Generator )		|
+					make_state( Curium, MicroChip )		|
+					make_state( Thulium, MicroChip );
+
+	s.lift = 3;
+}
+
+void init_building_start_pt2( building_state& s )
+{
+	s.floors[ 0 ] = make_state( Strontium, Generator )	|
+					make_state( Strontium, MicroChip )	|
+					make_state( Plutonium, Generator )	|
+					make_state( Plutonium, MicroChip )	|
+					make_state( Elerium, Generator ) 	|
+					make_state( Elerium, MicroChip )	|
+					make_state( Dilithium, Generator )	|
+					make_state( Dilithium, MicroChip );
+
+	s.floors[ 1 ] = make_state( Thulium, Generator )	|
+					make_state( Ruthenium, Generator )	|
+					make_state( Ruthenium, MicroChip )	|
+					make_state( Curium, Generator )		|
+					make_state( Curium, MicroChip );
+
+	s.floors[ 2 ] = make_state( Thulium, MicroChip );
+
+	s.floors[ 3 ] = 0;
+
+	s.lift = 0;
+}
+
+void init_building_end_pt2( building_state& s )
+{
+	s.floors[ 0 ] = s.floors[ 1 ] = s.floors[ 2 ] = 0;
+
+	s.floors[ 3 ] = make_state( Strontium, Generator )	|
+					make_state( Strontium, MicroChip )	|
+					make_state( Plutonium, Generator )	|
+					make_state( Plutonium, MicroChip )	|
+					make_state( Thulium, Generator )	|
+					make_state( Ruthenium, Generator )	|
+					make_state( Ruthenium, MicroChip )	|
+					make_state( Curium, Generator )		|
+					make_state( Curium, MicroChip )		|
+					make_state( Thulium, MicroChip )	|
+					make_state( Elerium, Generator )	|
+					make_state( Elerium, MicroChip )	|
+					make_state( Dilithium, Generator )	|
+					make_state( Dilithium, MicroChip );
+
+	s.lift = 3;
+}
 int Day11_Test( void )
 {
 	building_state building_start;
-	init_building_start( building_start );
+	init_building_start_pt1( building_start );
 
 	assert( has_state( building_start.floors[ 0 ], item_id::Strontium, item_type::Generator ) );
 	assert( has_state( building_start.floors[ 0 ], item_id::Strontium, item_type::MicroChip ) );
@@ -371,20 +575,35 @@ int Day11_Test( void )
 int Day11_Part1( int argc, char* argv[] )
 {
 	building_state building_start;
-	init_building_start( building_start );
+	init_building_start_pt1( building_start );
 
 	building_state building_end;
-	init_building_end( building_end );
+	init_building_end_pt1( building_end );
 
-	auto path = BreadthFirst( building_start, building_end );
+	auto path = Astar( building_start, building_end );
+
+	//auto path = BreadthFirst( building_start, building_end );
 
 	// Should yield 37
+
+	std::cout << "Part 1 completed in " << path.size() - 1 << " steps\n";
 
 	return path.size() - 1;
 }
 
 int Day11_Part2( int argc, char* argv[] )
 {
-	return -1;
+	building_state building_start;
+	init_building_start_pt2( building_start );
+
+	building_state building_end;
+	init_building_end_pt2( building_end );
+
+	//auto path = BreadthFirst( building_start, building_end );
+	auto path = Astar( building_start, building_end );
+
+	std::cout << "Part 2 completed in " << path.size() - 1 << " steps\n";
+
+	return path.size() - 1;
 }
 

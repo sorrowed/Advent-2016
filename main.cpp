@@ -60,7 +60,7 @@ int main( int argc, char *argv[] )
 */
 
 	Day11_Test();
-	Day11_Part1( argc, argv );
+	//Day11_Part1( argc, argv );
 	Day11_Part2( argc, argv );
 
 /*
