@@ -56,31 +56,31 @@ enum item_id
 	LastId
 };
 
-uint32_t make_state( item_id id, item_type t )
+uint16_t make_state( item_id id, item_type t )
 {
 	return t << (id * 2);
 }
 
-bool has_state( uint32_t state, item_id id, item_type t )
+bool has_state( uint16_t state, item_id id, item_type t )
 {
 	auto s = make_state( id, t );
 
 	return (state & s) == s;
 }
 
-bool has_generator( uint32_t state )
+bool has_generator( uint16_t state )
 {
 	return (state & item_type::Generator) == item_type::Generator;
 }
 
-bool is_shielded( uint32_t state )
+bool is_shielded( uint16_t state )
 {
 	auto s = (state & item_type::TypeMask);
 
 	return  s != item_type::MicroChip;
 }
 
-bool is_dangerous( uint32_t state )
+bool is_dangerous( uint16_t state )
 {
 	bool dangerous = false;
 	bool shielded = true;
@@ -96,29 +96,24 @@ bool is_dangerous( uint32_t state )
 	return dangerous && !shielded;
 }
 
-bool move( uint32_t* from, uint32_t* to, uint32_t modules )
-{
-	if( ( *from & modules ) != modules )
-		return false;
-
-	*from &= ~( modules );
-	*to |= modules;
-
-	return true;
-}
-
 struct building_state
 {
 	int lift;
-	uint32_t floors[ 4 ];
+	uint64_t img;
+
+	uint16_t get_floor( int ix ) const {
+		return ( img >> ( ix * 16 ) ) & 0xFFFF;
+	}
+
+	void set_floor( int ix, uint16_t value ){
+
+		img &= ~( 0xFFFFUL <<  ( ix * 16 ) );
+		img |= ( uint64_t( value ) << ( ix * 16 ) );
+	}
 
 	bool operator==(const building_state& state ) const
 	{
-		return lift == state.lift &&
-				floors[ 0 ] == state.floors[ 0 ] &&
-				floors[ 1 ] == state.floors[ 1 ] &&
-				floors[ 2 ] == state.floors[ 2 ] &&
-				floors[ 3 ] == state.floors[ 3 ];
+		return lift == state.lift && img == state.img;
 	}
 
 	bool operator!=(const building_state& state ) const
@@ -128,16 +123,13 @@ struct building_state
 
 	bool operator<(const building_state& state ) const
 	{
-		return floors[ 3 ] < state.floors[ 3 ] &&
-				floors[ 2 ] < state.floors[ 2 ] &&
-				floors[ 1 ] < state.floors[ 1 ] &&
-				floors[ 0 ] < state.floors[ 0 ] &&
+		return img < state.img &&
 				lift < state.lift;
 	}
 
 	int Hash() const
 	{
-		return lift ^ floors[ 0 ] ^ floors[ 1 ] ^ floors[ 2 ] ^ floors[ 3 ];
+		return lift ^ img;
 	}
 };
 
@@ -147,17 +139,35 @@ struct Hash{
 	}
 };
 
+bool move( building_state* state, int from, int to, uint16_t modules )
+{
+	auto f = state->get_floor( from );
+
+	if( ( f & modules ) != modules )
+		return false;
+
+	auto t = state->get_floor( to );
+
+	f &= ~( modules );
+	t |= modules;
+
+	state->set_floor( from, f );
+	state->set_floor( to, t );
+
+	return true;
+}
+
 /*!
  * Create a set with all non-dangerous combinations and single module( generator/microchip ) items
  * These are all possible (combinations of) items that could be taken into the lift.
  * Because the lift won't move if not at least one item is taken, there is no "nothing combination"
  */
-unordered_set<uint32_t> combinations()
+unordered_set<uint16_t> combinations()
 {
-	vector<uint32_t> c;
-	unordered_set<uint32_t> r;
+	vector<uint16_t> c;
+	unordered_set<uint16_t> r;
 
-	for( uint32_t id = Strontium; id < LastId; ++id ) {
+	for( uint16_t id = Strontium; id < LastId; ++id ) {
 		c.push_back( make_state( item_id( id ), item_type::Generator ) );
 		c.push_back( make_state( item_id( id ), item_type::MicroChip ) );
 
@@ -182,25 +192,18 @@ unordered_set<uint32_t> combinations()
  *	If moving a pair of items (Generator + Microchip) any other pair of items (Generator + Microchip) would be
  *	an equivalent move, so remove all but one.
  */
-bool is_pair( uint32_t comb )
+bool is_pair( uint16_t comb )
 {
-	return (comb & 0x00000003) == 0x00000003 ||
-			(comb & 0x0000000C) == 0x0000000C ||
-			(comb & 0x00000030) == 0x00000030 ||
-			(comb & 0x000000C0) == 0x000000C0 ||
-			(comb & 0x00000300) == 0x00000300 ||
-			(comb & 0x00000C00) == 0x00000C00 ||
-			(comb & 0x00003000) == 0x00003000 ||
-			(comb & 0x0000C000) == 0x0000C000 ||
-			(comb & 0x00030000) == 0x00030000 ||
-			(comb & 0x000C0000) == 0x000C0000 ||
-			(comb & 0x00300000) == 0x00300000 ||
-			(comb & 0x00C00000) == 0x00C00000 ||
-			(comb & 0x03000000) == 0x03000000 ||
-			(comb & 0x0C000000) == 0x0C000000 ||
-			(comb & 0x30000000) == 0x30000000 ||
-			(comb & 0xC0000000) == 0xC0000000;
+	return (comb & 0x0003) == 0x0003 ||
+			(comb & 0x000C) == 0x000C ||
+			(comb & 0x0030) == 0x0030 ||
+			(comb & 0x00C0) == 0x00C0 ||
+			(comb & 0x0300) == 0x0300 ||
+			(comb & 0x0C00) == 0x0C00 ||
+			(comb & 0x3000) == 0x3000 ||
+			(comb & 0xC000) == 0xC000;
 }
+
 
 unordered_set<building_state, Hash> visited;
 
@@ -217,7 +220,7 @@ unordered_set<building_state, Hash> neighbors( const building_state& s )
 
 	// Move lift up
 	if( s.lift < 3 ) {
-		for( uint32_t c : comb ) {
+		for( uint16_t c : comb ) {
 
 			bool p = is_pair( c );
 			if( has_pair && p )
@@ -225,13 +228,13 @@ unordered_set<building_state, Hash> neighbors( const building_state& s )
 
 			building_state next = s;
 
-			if( !move( &next.floors[ next.lift ], &next.floors[ next.lift + 1 ], c ) )
+			if( !move( &next, next.lift, next.lift + 1, c ) )
 				continue;
 
-			if( is_dangerous( next.floors[ next.lift ] ) )
+			if( is_dangerous( next.get_floor( next.lift ) ) )
 				continue;
 			++next.lift;
-			if( is_dangerous( next.floors[ next.lift ] ) )
+			if( is_dangerous( next.get_floor( next.lift ) ) )
 				continue;
 
 			if( visited.count( next ) != 0 )
@@ -249,7 +252,7 @@ unordered_set<building_state, Hash> neighbors( const building_state& s )
 
 	// Move lift down
 	if( s.lift > 0 ) {
-		for( uint32_t c : comb ) {
+		for( uint16_t c : comb ) {
 
 			bool p = is_pair( c );
 			if( has_pair && p )
@@ -257,13 +260,13 @@ unordered_set<building_state, Hash> neighbors( const building_state& s )
 
 			building_state next = s;
 
-			if( !move( &next.floors[ next.lift ], &next.floors[ next.lift - 1 ], c ) )
+			if( !move( &next, next.lift, next.lift - 1, c ) )
 				continue;
 
-			if( is_dangerous( next.floors[ next.lift ] ) )
+			if( is_dangerous( next.get_floor( next.lift ) ) )
 				continue;
 			--next.lift;
-			if( is_dangerous( next.floors[ next.lift ] ) )
+			if( is_dangerous( next.get_floor( next.lift ) ) )
 				continue;
 
 			if( visited.count( next ) != 0 )
@@ -331,10 +334,10 @@ double cost( const building_state& current, const building_state& next )
 double heuristic( const building_state& next, const building_state& end )
 {
 
-	return __builtin_popcount( next.floors[ 3 ] ) * 1 +
-			__builtin_popcount( next.floors[ 2 ] ) * 2 +
-			__builtin_popcount( next.floors[ 1 ] ) * 3 +
-			__builtin_popcount( next.floors[ 0 ] ) * 4;
+	return __builtin_popcount( next.get_floor( 3 ) ) * 1 +
+			__builtin_popcount( next.get_floor( 2 ) ) * 2 +
+			__builtin_popcount( next.get_floor( 1 ) ) * 3 +
+			__builtin_popcount( next.get_floor( 0 ) ) * 4;
 }
 
 using std::pair;
@@ -440,9 +443,9 @@ std::ostream& print( std::ostream& str, item_id id )
 	return str;
 }
 
-std::ostream& print( std::ostream& str, uint32_t modules )
+std::ostream& print( std::ostream& str, uint16_t modules )
 {
-	for( uint32_t id = Strontium; id < LastId; ++id ) {
+	for( uint16_t id = Strontium; id < LastId; ++id ) {
 
 		if( has_state( modules, (item_id) id, item_type::Generator ) )
 			print( str, (item_id)id ) << " generator ";
@@ -452,7 +455,7 @@ std::ostream& print( std::ostream& str, uint32_t modules )
 	return str;
 }
 
-std::ostream& print( std::ostream& str, unordered_set<uint32_t>& combinations )
+std::ostream& print( std::ostream& str, unordered_set<uint16_t>& combinations )
 {
 	for( auto m : combinations ) {
 		print( str, m ) << '\n';
@@ -462,29 +465,31 @@ std::ostream& print( std::ostream& str, unordered_set<uint32_t>& combinations )
 
 void init_building_start_pt1( building_state& s )
 {
-	s.floors[ 0 ] = make_state( Strontium, Generator ) |
+	s.set_floor( 0, make_state( Strontium, Generator ) |
 					make_state( Strontium, MicroChip ) |
 					make_state( Plutonium, Generator ) |
-					make_state( Plutonium, MicroChip );
+					make_state( Plutonium, MicroChip ) );
 
-	s.floors[ 1 ] = make_state( Thulium, Generator ) |
+	s.set_floor( 1, make_state( Thulium, Generator ) |
 					make_state( Ruthenium, Generator ) |
 					make_state( Ruthenium, MicroChip ) |
 					make_state( Curium, Generator ) |
-					make_state( Curium, MicroChip );
+					make_state( Curium, MicroChip ) );
 
-	s.floors[ 2 ] = make_state( Thulium, MicroChip );
+	s.set_floor( 2, make_state( Thulium, MicroChip ) );
 
-	s.floors[ 3 ] = 0;
+	s.set_floor( 3, 0 );
 
 	s.lift = 0;
 }
 
 void init_building_end_pt1( building_state& s )
 {
-	s.floors[ 0 ] = s.floors[ 1 ] = s.floors[ 2 ] = 0;
+	s.set_floor( 0, 0 );
+	s.set_floor( 1, 0 );
+	s.set_floor( 2, 0 );
 
-	s.floors[ 3 ] = make_state( Strontium, Generator )	|
+	s.set_floor( 3, make_state( Strontium, Generator )	|
 					make_state( Strontium, MicroChip )	|
 					make_state( Plutonium, Generator )	|
 					make_state( Plutonium, MicroChip )	|
@@ -493,40 +498,42 @@ void init_building_end_pt1( building_state& s )
 					make_state( Ruthenium, MicroChip )	|
 					make_state( Curium, Generator )		|
 					make_state( Curium, MicroChip )		|
-					make_state( Thulium, MicroChip );
+					make_state( Thulium, MicroChip ) );
 
 	s.lift = 3;
 }
 
 void init_building_start_pt2( building_state& s )
 {
-	s.floors[ 0 ] = make_state( Strontium, Generator )	|
+	s.set_floor( 0, make_state( Strontium, Generator )	|
 					make_state( Strontium, MicroChip )	|
 					make_state( Plutonium, Generator )	|
 					make_state( Plutonium, MicroChip )	|
 					make_state( Elerium, Generator ) 	|
 					make_state( Elerium, MicroChip )	|
 					make_state( Dilithium, Generator )	|
-					make_state( Dilithium, MicroChip );
+					make_state( Dilithium, MicroChip ) );
 
-	s.floors[ 1 ] = make_state( Thulium, Generator )	|
+	s.set_floor( 1, make_state( Thulium, Generator )	|
 					make_state( Ruthenium, Generator )	|
 					make_state( Ruthenium, MicroChip )	|
 					make_state( Curium, Generator )		|
-					make_state( Curium, MicroChip );
+					make_state( Curium, MicroChip ) );
 
-	s.floors[ 2 ] = make_state( Thulium, MicroChip );
+	s.set_floor( 2, make_state( Thulium, MicroChip ) );
 
-	s.floors[ 3 ] = 0;
+	s.set_floor( 3, 0 );
 
 	s.lift = 0;
 }
 
 void init_building_end_pt2( building_state& s )
 {
-	s.floors[ 0 ] = s.floors[ 1 ] = s.floors[ 2 ] = 0;
+	s.set_floor( 0, 0 );
+	s.set_floor( 1, 0 );
+	s.set_floor( 2, 0 );
 
-	s.floors[ 3 ] = make_state( Strontium, Generator )	|
+	s.set_floor( 3, make_state( Strontium, Generator )	|
 					make_state( Strontium, MicroChip )	|
 					make_state( Plutonium, Generator )	|
 					make_state( Plutonium, MicroChip )	|
@@ -539,7 +546,7 @@ void init_building_end_pt2( building_state& s )
 					make_state( Elerium, Generator )	|
 					make_state( Elerium, MicroChip )	|
 					make_state( Dilithium, Generator )	|
-					make_state( Dilithium, MicroChip );
+					make_state( Dilithium, MicroChip ) );
 
 	s.lift = 3;
 }
@@ -548,23 +555,23 @@ int Day11_Test( void )
 	building_state building_start;
 	init_building_start_pt1( building_start );
 
-	assert( has_state( building_start.floors[ 0 ], item_id::Strontium, item_type::Generator ) );
-	assert( has_state( building_start.floors[ 0 ], item_id::Strontium, item_type::MicroChip ) );
-	assert( has_state( building_start.floors[ 0 ], item_id::Plutonium, item_type::Generator ) );
-	assert( has_state( building_start.floors[ 0 ], item_id::Plutonium, item_type::MicroChip ) );
+	assert( has_state( building_start.get_floor(0), item_id::Strontium, item_type::Generator ) );
+	assert( has_state( building_start.get_floor(0), item_id::Strontium, item_type::MicroChip ) );
+	assert( has_state( building_start.get_floor(0), item_id::Plutonium, item_type::Generator ) );
+	assert( has_state( building_start.get_floor(0), item_id::Plutonium, item_type::MicroChip ) );
 
-	assert( has_state( building_start.floors[ 1 ], item_id::Thulium, item_type::Generator ) );
-	assert( has_state( building_start.floors[ 1 ], item_id::Ruthenium, item_type::Generator ) );
-	assert( has_state( building_start.floors[ 1 ], item_id::Ruthenium, item_type::MicroChip ) );
-	assert( has_state( building_start.floors[ 1 ], item_id::Curium, item_type::Generator ) );
-	assert( has_state( building_start.floors[ 1 ], item_id::Curium, item_type::MicroChip ) );
+	assert( has_state( building_start.get_floor(1), item_id::Thulium, item_type::Generator ) );
+	assert( has_state( building_start.get_floor(1), item_id::Ruthenium, item_type::Generator ) );
+	assert( has_state( building_start.get_floor(1), item_id::Ruthenium, item_type::MicroChip ) );
+	assert( has_state( building_start.get_floor(1), item_id::Curium, item_type::Generator ) );
+	assert( has_state( building_start.get_floor(1), item_id::Curium, item_type::MicroChip ) );
 
-	assert( has_state( building_start.floors[ 2 ], item_id::Thulium, item_type::MicroChip ) );
+	assert( has_state( building_start.get_floor(2), item_id::Thulium, item_type::MicroChip ) );
 
-	assert( !is_dangerous( building_start.floors[ 0 ] ) );
-	assert( !is_dangerous( building_start.floors[ 1 ] ) );
-	assert( !is_dangerous( building_start.floors[ 2 ] ) );
-	assert( !is_dangerous( building_start.floors[ 3 ] ) );
+	assert( !is_dangerous( building_start.get_floor(0) ) );
+	assert( !is_dangerous( building_start.get_floor(1) ) );
+	assert( !is_dangerous( building_start.get_floor(2) ) );
+	assert( !is_dangerous( building_start.get_floor(3) ) );
 
 	auto comb = combinations();
 	print( std::cout, comb );
