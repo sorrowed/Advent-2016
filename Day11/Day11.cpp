@@ -609,6 +609,7 @@ int Day11_Part2( int argc, char* argv[] )
 	//auto path = BreadthFirst( building_start, building_end );
 	auto path = Astar( building_start, building_end );
 
+	// Should yield 61
 	std::cout << "Part 2 completed in " << path.size() - 1 << " steps\n";
 
 	return path.size() - 1;
