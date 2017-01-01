@@ -68,12 +68,12 @@ int main( int argc, char *argv[] )
 
 	Day13_Test();
 	Day13_Part1( argc, argv );
-*/
+
 	Day13_Part2( argc, argv );
-/*
+*/
 	Day14_Test();
 	Day14_Part1( argc, argv );
 	Day14_Part2( argc, argv );
-*/
+
 	return 0;
 }
