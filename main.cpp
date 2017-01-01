@@ -57,21 +57,20 @@ int main( int argc, char *argv[] )
 	Day10_Test();
 	Day10_Part1( argc, argv );
 	Day10_Part2( argc, argv );
-*/
 
 	Day11_Test();
 	Day11_Part1( argc, argv );
 	Day11_Part2( argc, argv );
 
-/*
 	Day12_Test();
 	Day12_Part1( argc, argv );
 	Day12_Part2( argc, argv );
 
 	Day13_Test();
 	Day13_Part1( argc, argv );
+*/
 	Day13_Part2( argc, argv );
-
+/*
 	Day14_Test();
 	Day14_Part1( argc, argv );
 	Day14_Part2( argc, argv );

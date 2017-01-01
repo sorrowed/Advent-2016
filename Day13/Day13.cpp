@@ -119,24 +119,18 @@ std::vector<Location> BreadthFirst( const Location& start, const Location& end, 
 {
 	std::unordered_map<Location, Location, Hash> came_from;
 
-	Location s = start;
-	Location e = end;
-
-	s.L = 0;
-
 	std::queue<Location> frontier;
-	frontier.push( s );
-	came_from[ s ] = s;
+	frontier.push( start );
+	came_from[ start ] = start;
 
 	while( !frontier.empty() ) {
 		auto current = frontier.front();
 		frontier.pop();
 
-		if( current == e )
+		if( current == end )
 			break;
 
 		for( auto next : neighbors[ current ] ) {
-			next.L = current.L + 1;
 
 			if( !came_from.count( next ) ) {
 
@@ -147,9 +141,9 @@ std::vector<Location> BreadthFirst( const Location& start, const Location& end, 
 	}
 
 	std::vector<Location> path;
-	auto current = e;
+	auto current = end;
 	path.push_back( current );
-	while( current != s && current.IsValid() ) {
+	while( current != start && current.IsValid() ) {
 		current = came_from[ current ];
 		path.push_back( current );
 	}
@@ -158,28 +152,35 @@ std::vector<Location> BreadthFirst( const Location& start, const Location& end, 
 	return path;
 }
 
-void Traverse( std::unordered_set<Location, Hash> locations, const Location& start, neighbor_map& neighbors, int max )
+/*!
+ *	Depth first traverse, but only if not visited *or* if the visited depth is greater than the current depth
+ *	This last situation would occur if we had visited a location and now we are visiting it again but via a shorter path.
+ */
+void Traverse( const Location& start, neighbor_map& neighbors, int max )
 {
-	for( auto next : neighbors[ start ] ) {
-		next.L = start.L + 1;
+	if( start.L >= max )
+		return;
 
-		Traverse( locations, next, neighbors, max );
+	for( auto& next : neighbors[ start ] ) {
+
+		int l = start.L + 1;
+
+		if( next.L == - 1 || next.L > l )
+		{
+			next.L = l;
+
+			Traverse( next, neighbors, max );
+		}
 	}
 }
 
-void Print( int w, int h, std::vector<Location>& path )
+void Print( int w, int h, std::unordered_set<Location, Hash>& locations )
 {
-	int count = 0;
-
 	for( int y = 0; y < h; ++y ) {
 		for( int x = 0; x < w; ++x ) {
 
-			auto l = std::find_if( path.begin(), path.end(),
-					[x,y]( const Location& i ) {return i.X == x && i.Y == y;} );
-
-			if( l != path.end() ) {
-				std::cout << std::hex << '0';//l->L;
-				++count;
+			if( locations.count( Location{ x, y } ) != 0 ) {
+				std::cout << '0';//l->L;
 			}
 			else if( IsOpenSpace( x, y, Own ) )
 				std::cout << ' ';
@@ -188,16 +189,12 @@ void Print( int w, int h, std::vector<Location>& path )
 		}
 		std::cout << '\n';
 	}
-
-	std::cout << "Marked " << count << " unique locations\n";
 }
 
 int Day13_Test( void )
 {
 	auto neighbors = CreateNeighbors( 10, 10, Demo );
 	auto path = BreadthFirst( Location{ 1, 1, 0 }, Location{ 7, 4, 0 }, neighbors );
-
-	//Print( 10, 10, path );
 
 	assert( path.size() - 1 == 11 );
 
@@ -209,8 +206,6 @@ int Day13_Part1( int argc, char* argv[] )
 	auto neighbors = CreateNeighbors( 50, 50, Own );
 	auto path = BreadthFirst( Location{ 1, 1, 0 }, Location{ 31, 39, 0 }, neighbors );
 
-	//Print( 50, 50, path );
-
 	assert( path.size() - 1 == 96 );
 
 	return path.size() - 1; // Should yield 96
@@ -218,14 +213,24 @@ int Day13_Part1( int argc, char* argv[] )
 
 int Day13_Part2( int argc, char* argv[] )
 {
-	auto neighbors = CreateNeighbors( 50, 50, Own );
+	auto neighbors = CreateNeighbors( 25, 25, Own );
 
-	std::unordered_set<Location, Hash> locations;
+	// Need to set L to zero because it is used as starting level
+	Traverse( Location{ 1, 1, 0 }, neighbors, 50 );
 
-	Traverse( locations, Location{ 1, 1, 0 }, neighbors, 50 );
+	std::unordered_set<Location, Hash> m;
+	for( auto& l : neighbors )
+	{
+		for( auto& n : l.second ){
+			if( n.L != -1 )
+				m.insert( n );
+		}
+	}
 
-	//Print( 50, 50, locations );
+	std::cout << "Marked " << m.size() << " unique locations\n";
 
-	return locations.size() - 1;
+	Print( 25, 25, m );
+
+	return m.size(); // Should yield 141
 }
 
