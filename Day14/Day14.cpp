@@ -34,7 +34,7 @@ digest_t hash( const string& salt, int index, int stretch, map<int,digest_t>& pr
 
 	for( int i = 0; i < stretch; ++i ){
 
-		md5((uint8_t*) buffer, strlen(buffer), digest.begin());
+		md5((const uint8_t*) buffer, strlen(buffer), digest.begin());
 
 		snprintf( buffer, 33, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 				(int) digest[0], (int) digest[1], (int) digest[2], (int) digest[3],
