@@ -105,7 +105,7 @@ int Day10_Part1( int argc, char* argv[] )
 
 	// Read ops from file
 	vector<string> lines;
-	Read( "/home/tom/Projects/Advent-2016/Day10/input.txt", &lines );
+	Read( "input.txt", &lines );
 
 	vector<pair<bool, shared_ptr<Op> > > ops;
 	ReadOps( lines, ops );

@@ -95,7 +95,7 @@ std::string::size_type Decompress2( const string& input )
 int Day9_Part1( int argc, char* argv[] )
 {
 	vector<string> lines;
-	Read( "/home/tom/Projects/Advent-2016/Day9/input.txt", &lines );
+	Read( "input.txt", &lines );
 
 	int len = 0;
 	for( auto& line : lines ) {
@@ -109,7 +109,7 @@ int Day9_Part1( int argc, char* argv[] )
 int Day9_Part2( int argc, char* argv[] )
 {
 	vector<string> lines;
-	Read( "/home/tom/Projects/Advent-2016/Day9/input.txt", &lines );
+	Read( "input.txt", &lines );
 
 	stringstream out;
 
