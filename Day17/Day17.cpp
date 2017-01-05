@@ -64,9 +64,9 @@ enum Direction
 	Right
 };
 
-std::unordered_map<Direction, path_t> neighbors( const path_t& path )
+std::unordered_map<int, path_t> neighbors( const path_t& path )
 {
-	std::unordered_map<Direction, path_t> n;
+	std::unordered_map<int, path_t> n;
 
 	digest_t digest;
 	md5( (const uint8_t*)path.first.c_str(), path.first.length(), digest.begin() );
@@ -87,7 +87,7 @@ std::unordered_map<Direction, path_t> neighbors( const path_t& path )
 	return n;
 }
 
-void move( path_t* path, Direction d, std::unordered_map<Direction, path_t>& n )
+void move( path_t* path, Direction d, std::unordered_map<int, path_t>& n )
 {
 	if( n.count( d ) == 0 )
 		throw invalid_move();
