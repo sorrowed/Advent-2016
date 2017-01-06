@@ -238,36 +238,43 @@ int Day21_Test( void )
 	stringstream str1( "4 with position 0" );
 	op1.Parse( str1 );
 	op1.Apply( s );
+	op1.Reverse( s );
 
 	SwapLetterOp op7;
 	stringstream str7( "a with letter b" );
 	op7.Parse( str7 );
 	op7.Apply( s );
+	op7.Reverse( s );
 
 	ReverseOp op2;
 	stringstream str2( "positions 1 through 3" );
 	op2.Parse( str2 );
 	op2.Apply( s );
+	op2.Reverse( s );
 
 	RotateLeftOp op3;
 	stringstream str3( "1 step" );
 	op3.Parse( str3 );
 	op3.Apply( s );
+	op3.Reverse( s );
 
 	RotateRightOp op4;
 	stringstream str4( "1 step" );
 	op4.Parse( str4 );
 	op4.Apply( s );
+	op4.Reverse( s );
 
 	MoveOp op5;
 	stringstream str5( "position 1 to position 3" );
 	op5.Parse( str5 );
 	op5.Apply( s );
+	op5.Reverse( s );
 
 	RotateBasedOp op6;
 	stringstream str6( "on position of letter c" );
 	op6.Parse( str6 );
 	op6.Apply( s );
+	op6.Reverse( s );
 
 	return -1;
 }
