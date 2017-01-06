@@ -11,15 +11,18 @@
 #include <string>
 #include <algorithm>
 #include <sstream>
+#include <memory>
 
 using std::vector;
 using std::string;
 using std::stringstream;
+using std::shared_ptr;
 
 struct Op
 {
 	virtual void Parse( stringstream& str ) = 0;
-	virtual string& Execute( string& src ) = 0;
+	virtual string& Apply( string& src ) = 0;
+	virtual string& Reverse( string& src ) = 0;
 };
 
 struct SwapOp: public Op
@@ -29,17 +32,24 @@ struct SwapOp: public Op
 
 	void Parse( stringstream& str )
 	{
+		str >> std::ws;
 		str >> a;
+		str.ignore( 256, ' ' );
 		str.ignore( 256, ' ' );
 		str.ignore( 256, ' ' );
 		str >> b;
 	}
 
-	string& Execute( string& src )
+	string& Apply( string& src )
 	{
 		std::swap( src[ a ], src[ b ] );
 
 		return src;
+	}
+
+	string& Reverse( string& src )
+	{
+		return Apply( src );
 	}
 };
 
@@ -50,6 +60,7 @@ struct SwapLetterOp: public Op
 
 	void Parse( stringstream& str )
 	{
+		str >> std::ws;
 		str >> a;
 		str.ignore( 256, ' ' );
 		str.ignore( 256, ' ' );
@@ -57,7 +68,7 @@ struct SwapLetterOp: public Op
 		str >> b;
 	}
 
-	string& Execute( string& src )
+	string& Apply( string& src )
 	{
 		auto s1 = src.find( a );
 		auto s2 = src.find( b );
@@ -65,6 +76,11 @@ struct SwapLetterOp: public Op
 		std::swap( src[ s1 ], src[ s2 ] );
 
 		return src;
+	}
+
+	string& Reverse( string& src )
+	{
+		return Apply( src );
 	}
 };
 
@@ -75,6 +91,7 @@ struct ReverseOp: public Op
 
 	void Parse( stringstream& str )
 	{
+		str >> std::ws;
 		str.ignore( 256, ' ' );
 		str >> from;
 		str.ignore( 256, ' ' );
@@ -82,37 +99,67 @@ struct ReverseOp: public Op
 		str >> to;
 	}
 
-	string& Execute( string& src )
+	string& Apply( string& src )
 	{
 		std::reverse( src.begin() + from, src.begin() + to + 1 );
 
 		return src;
 	}
+
+	string& Reverse( string& src )
+	{
+		return Apply( src );
+	}
 };
 
-struct RotateLeftRightOp: public Op
+struct RotateLeftOp: public Op
 {
-	string dir;
 	int count;
 
 	void Parse( stringstream& str )
 	{
-		str >> dir;
-		str >> count;
+		str >> std::ws >> count;
 	}
 
-	string& Execute( string& src )
+	string& Apply( string& src )
 	{
-		if( dir == "left" ){
-			std::rotate( src.begin(), src.begin() + count, src.end() );
-		}
-		else
-		if( dir == "right" ){
-			std::rotate( src.begin(), src.end() - count, src.end() );
-		}
+		std::rotate( src.begin(), src.begin() + count, src.end() );
 
 		return src;
 	}
+
+	string& Reverse( string& src )
+	{
+		std::rotate( src.begin(), src.end() - count, src.end() );
+
+		return src;
+	}
+
+};
+
+struct RotateRightOp: public Op
+{
+	int count;
+
+	void Parse( stringstream& str )
+	{
+		str >> std::ws >> count;
+	}
+
+	string& Apply( string& src )
+	{
+		std::rotate( src.begin(), src.end() - count, src.end() );
+
+		return src;
+	}
+
+	string& Reverse( string& src )
+	{
+		std::rotate( src.begin(), src.begin() + count, src.end() );
+
+		return src;
+	}
+
 };
 
 struct MoveOp: public Op
@@ -122,6 +169,7 @@ struct MoveOp: public Op
 
 	void Parse( stringstream& str )
 	{
+		str >> std::ws;
 		str.ignore( 256, ' ' );
 		str >> a;
 		str.ignore( 256, ' ' );
@@ -130,11 +178,19 @@ struct MoveOp: public Op
 		str >> b;
 	}
 
-	string& Execute( string& src )
+	string& Apply( string& src )
 	{
 		auto s = src[ a ];
 		src.erase( src.begin() + a );
 		src.insert( src.begin() + b, s );
+		return src;
+	}
+
+	string& Reverse( string& src )
+	{
+		auto s = src[ b ];
+		src.erase( src.begin() + b );
+		src.insert( src.begin() + a, s );
 		return src;
 	}
 };
@@ -142,10 +198,11 @@ struct MoveOp: public Op
 struct RotateBasedOp: public Op
 {
 	char letter;
+	int count;
 
 	void Parse( stringstream& str )
 	{
-		str.ignore( 256, ' ' );
+		str >> std::ws;
 		str.ignore( 256, ' ' );
 		str.ignore( 256, ' ' );
 		str.ignore( 256, ' ' );
@@ -153,9 +210,9 @@ struct RotateBasedOp: public Op
 		str >> letter;
 	}
 
-	string& Execute( string& src )
+	string& Apply( string& src )
 	{
-		auto count = src.find( letter );
+		count = src.find( letter );
 		if( count >= 4 )
 			++count;
 		++count;
@@ -164,60 +221,131 @@ struct RotateBasedOp: public Op
 
 		return src;
 	}
+
+	string& Reverse( string& src )
+	{
+		std::rotate( src.begin(), src.begin() + count, src.end() );
+
+		return src;
+	}
 };
 
 
 int Day21_Test( void )
 {
-	vector<string> lines;
-	Read( "input.txt", &lines );
-
 	string s = "abcde";
 	SwapOp op1;
 	stringstream str1( "4 with position 0" );
 	op1.Parse( str1 );
-	op1.Execute( s );
+	op1.Apply( s );
 
 	SwapLetterOp op7;
 	stringstream str7( "a with letter b" );
 	op7.Parse( str7 );
-	op7.Execute( s );
+	op7.Apply( s );
 
 	ReverseOp op2;
 	stringstream str2( "positions 1 through 3" );
 	op2.Parse( str2 );
-	op2.Execute( s );
+	op2.Apply( s );
 
-	RotateLeftRightOp op3;
-	stringstream str3( "left 1 step" );
+	RotateLeftOp op3;
+	stringstream str3( "1 step" );
 	op3.Parse( str3 );
-	op3.Execute( s );
+	op3.Apply( s );
 
-	RotateLeftRightOp op4;
-	stringstream str4( "right 1 step" );
+	RotateRightOp op4;
+	stringstream str4( "1 step" );
 	op4.Parse( str4 );
-	op4.Execute( s );
+	op4.Apply( s );
 
 	MoveOp op5;
 	stringstream str5( "position 1 to position 3" );
 	op5.Parse( str5 );
-	op5.Execute( s );
+	op5.Apply( s );
 
 	RotateBasedOp op6;
-	stringstream str6( "based on position of letter c" );
+	stringstream str6( "on position of letter c" );
 	op6.Parse( str6 );
-	op6.Execute( s );
+	op6.Apply( s );
 
 	return -1;
+}
+
+vector<shared_ptr<Op>> parse( const vector<string> lines )
+{
+	vector<shared_ptr<Op>> ops;
+
+	for( auto& line : lines )
+	{
+		stringstream str( line );
+
+		string token;
+		str >> token;
+
+		shared_ptr<Op> t = nullptr;
+
+		if( token == "swap" ) {
+			str >> token;
+			if( token == "position" )
+				t = std::make_shared<SwapOp>();
+			else if( token == "letter" )
+				t = std::make_shared<SwapLetterOp>();
+		}
+		else if( token == "reverse" )
+			t = std::make_shared<ReverseOp>();
+		else if( token == "rotate" ) {
+			str >> token;
+			if( token == "based" )
+				t = std::make_shared<RotateBasedOp>();
+			else if( token == "left" )
+				t = std::make_shared<RotateLeftOp>();
+			else if( token == "right" )
+				t = std::make_shared<RotateRightOp>();
+		}
+		else if( token == "move" ) {
+			t = std::make_shared<MoveOp>();
+		}
+		else
+			throw std::exception();
+
+
+		if( t != nullptr ) {
+			t->Parse( str );
+			ops.push_back( t );
+		}
+	}
+
+	return ops;
 }
 
 int Day21_Part1( int argc, char* argv[] )
 {
-	return -1;
+	vector<string> lines;
+	Read( "/home/tom/Projects/Advent-2016/Day21/input.txt", &lines );
+
+	auto ops = parse( lines );
+
+	string input = "abcdefgh";
+	for( auto& op : ops )
+		op->Apply( input );
+
+	// Should yield bdfhgeca
+	return 0;
 }
 
 int Day21_Part2( int argc, char* argv[] )
 {
-	return -1;
+	vector<string> lines;
+	Read( "/home/tom/Projects/Advent-2016/Day21/input.txt", &lines );
+
+	auto ops = parse( lines );
+	std::reverse( ops.begin(), ops.end() );
+
+	string input = "fbgdceah";
+	for( auto& op : ops )
+		op->Reverse( input );
+
+	return 0;
 }
 
