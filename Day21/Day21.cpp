@@ -22,7 +22,7 @@ struct Op
 {
 	virtual void Parse( stringstream& str ) = 0;
 	virtual string& Apply( string& src ) = 0;
-	virtual string& Reverse( string& src ) = 0;
+	virtual string& Revert( string& src ) = 0;
 };
 
 struct SwapOp: public Op
@@ -47,7 +47,7 @@ struct SwapOp: public Op
 		return src;
 	}
 
-	string& Reverse( string& src )
+	string& Revert( string& src )
 	{
 		return Apply( src );
 	}
@@ -78,7 +78,7 @@ struct SwapLetterOp: public Op
 		return src;
 	}
 
-	string& Reverse( string& src )
+	string& Revert( string& src )
 	{
 		return Apply( src );
 	}
@@ -106,7 +106,7 @@ struct ReverseOp: public Op
 		return src;
 	}
 
-	string& Reverse( string& src )
+	string& Revert( string& src )
 	{
 		return Apply( src );
 	}
@@ -128,7 +128,7 @@ struct RotateLeftOp: public Op
 		return src;
 	}
 
-	string& Reverse( string& src )
+	string& Revert( string& src )
 	{
 		std::rotate( src.begin(), src.end() - count, src.end() );
 
@@ -153,7 +153,7 @@ struct RotateRightOp: public Op
 		return src;
 	}
 
-	string& Reverse( string& src )
+	string& Revert( string& src )
 	{
 		std::rotate( src.begin(), src.begin() + count, src.end() );
 
@@ -186,7 +186,7 @@ struct MoveOp: public Op
 		return src;
 	}
 
-	string& Reverse( string& src )
+	string& Revert( string& src )
 	{
 		auto s = src[ b ];
 		src.erase( src.begin() + b );
@@ -198,7 +198,6 @@ struct MoveOp: public Op
 struct RotateBasedOp: public Op
 {
 	char letter;
-	int count;
 
 	void Parse( stringstream& str )
 	{
@@ -212,19 +211,32 @@ struct RotateBasedOp: public Op
 
 	string& Apply( string& src )
 	{
-		count = src.find( letter );
-		if( count >= 4 )
-			++count;
-		++count;
+		int index = src.find( letter );
+		if( index >= 4 )
+			++index;
+		++index;
 
-		std::rotate( src.begin(), src.end() - count, src.end() );
+		index %= src.length();
+
+		std::rotate( src.begin(), src.end() - index, src.end() );
 
 		return src;
 	}
 
-	string& Reverse( string& src )
+	string& Revert( string& src )
 	{
-		std::rotate( src.begin(), src.begin() + count, src.end() );
+		std::rotate( src.begin(), src.begin() + 1, src.end() );
+
+		int index = src.find( letter );
+
+		if( index >= 8 ) {
+			--index;
+			index /= 2;
+		}
+		else
+			index /= 2;
+
+		std::rotate( src.begin(), src.begin() + index, src.end() );
 
 		return src;
 	}
@@ -238,43 +250,53 @@ int Day21_Test( void )
 	stringstream str1( "4 with position 0" );
 	op1.Parse( str1 );
 	op1.Apply( s );
-	op1.Reverse( s );
+	op1.Revert( s );
 
 	SwapLetterOp op7;
 	stringstream str7( "a with letter b" );
 	op7.Parse( str7 );
 	op7.Apply( s );
-	op7.Reverse( s );
+	op7.Revert( s );
 
 	ReverseOp op2;
 	stringstream str2( "positions 1 through 3" );
 	op2.Parse( str2 );
 	op2.Apply( s );
-	op2.Reverse( s );
+	op2.Revert( s );
 
 	RotateLeftOp op3;
 	stringstream str3( "1 step" );
 	op3.Parse( str3 );
 	op3.Apply( s );
-	op3.Reverse( s );
+	op3.Revert( s );
 
 	RotateRightOp op4;
 	stringstream str4( "1 step" );
 	op4.Parse( str4 );
 	op4.Apply( s );
-	op4.Reverse( s );
+	op4.Revert( s );
 
 	MoveOp op5;
 	stringstream str5( "position 1 to position 3" );
 	op5.Parse( str5 );
 	op5.Apply( s );
-	op5.Reverse( s );
+	op5.Revert( s );
 
 	RotateBasedOp op6;
 	stringstream str6( "on position of letter c" );
 	op6.Parse( str6 );
 	op6.Apply( s );
-	op6.Reverse( s );
+	op6.Revert( s );
+
+
+	RotateBasedOp op8;
+	stringstream str8( "on position of letter d" );
+	op8.Parse( str8 );
+
+	s = "ecabd";
+
+	op8.Apply( s );
+	op8.Revert( s );
 
 	return -1;
 }
@@ -349,9 +371,9 @@ int Day21_Part2( int argc, char* argv[] )
 	auto ops = parse( lines );
 	std::reverse( ops.begin(), ops.end() );
 
-	string input = "fbgdceah";
+	string input = "bdfhgeca";
 	for( auto& op : ops )
-		op->Reverse( input );
+		op->Revert( input );
 
 	return 0;
 }
