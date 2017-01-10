@@ -195,6 +195,8 @@ struct MoveOp: public Op
 	}
 };
 
+#include <array>
+
 struct RotateBasedOp: public Op
 {
 	char letter;
@@ -225,18 +227,19 @@ struct RotateBasedOp: public Op
 
 	string& Revert( string& src )
 	{
-		std::rotate( src.begin(), src.begin() + 1, src.end() );
+		auto t = src;
+		for( int i = 0; i < t.length() - 1; ++i )
+		{
+			std::rotate( t.begin(), t.begin() + 1, t.end() );
+			auto t2 = t;
+			Apply( t2 );
 
-		int index = src.find( letter );
-
-		if( index >= 8 ) {
-			--index;
-			index /= 2;
+			if( t2 == src )
+			{
+				src = t;
+				break;
+			}
 		}
-		else
-			index /= 2;
-
-		std::rotate( src.begin(), src.begin() + index, src.end() );
 
 		return src;
 	}
@@ -292,9 +295,7 @@ int Day21_Test( void )
 	RotateBasedOp op8;
 	stringstream str8( "on position of letter d" );
 	op8.Parse( str8 );
-
 	s = "ecabd";
-
 	op8.Apply( s );
 	op8.Revert( s );
 
@@ -371,10 +372,11 @@ int Day21_Part2( int argc, char* argv[] )
 	auto ops = parse( lines );
 	std::reverse( ops.begin(), ops.end() );
 
-	string input = "bdfhgeca";
+	string input = "fbgdceah";
 	for( auto& op : ops )
 		op->Revert( input );
 
+	// Should yield gdfcabeh
 	return 0;
 }
 
