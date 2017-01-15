@@ -59,7 +59,7 @@ struct Node
 
 	bool fits( const Node& n ) const
 	{
-		return n.avail() >= used;
+		return n.size >= used;
 	}
 
 	static Node fromString( const string& src )
@@ -92,6 +92,20 @@ struct Node
 		return make_hash( x, y );
 	}
 };
+
+std::ostream& operator<<( std::ostream& str, const Node& node ){
+
+	bool empty = node.used == 0;
+
+	str << std::dec;
+	if( empty )
+		str << '*';
+	str << node.used << '/' << node.size;
+	if( empty )
+		str << '*';
+
+	return str;
+}
 
 bool is_viable( const Node& a, const Node& b )
 {
@@ -217,7 +231,7 @@ int Day22_Part1( int argc, char* argv[] )
 int Day22_Part2( int argc, char* argv[] )
 {
 	vector<string> lines;
-	Read( "input.txt", &lines );
+	Read( "./Day22/input.txt", &lines );
 
 	node_map nodes;
 	for( const auto& line : lines ){
@@ -229,12 +243,44 @@ int Day22_Part2( int argc, char* argv[] )
 
 	}
 
-	int xMax = INT_MIN;
+	//Your goal is to gain access to the data which begins in the node with y=0 and the highest x
+	int xMax = INT_MIN, yMax = INT_MIN;
 	for( auto& n : nodes ){
 		if( n.second.x > xMax ){
 			xMax = n.second.x;
 		}
+		if( n.second.y > yMax ){
+			yMax = n.second.y;
+		}
 	}
-	return -1;
+
+	// Want to move empty spot to the left of our goal data
+	auto goal = nodes[ make_hash( xMax - 1, 0 ) ];
+	auto empty = std::find_if( nodes.begin(), nodes.end(), []( const std::pair<int,Node>& n ) {  return n.second.used == 0; } );
+
+	auto path = BreadthFirst( empty->second, goal, nodes, xMax, yMax );
+
+	// Move the empty spot to the left of our goal
+	int count = path.size() - 1;
+	// Then move goal to the left and move the empty space around (4 moves of the empty spot) until the empty spot is at 0,0
+	auto current = goal;
+	while( current.x != 0 )
+	{
+		// move
+		count += 1;
+
+		// move empty spot around to the left of goal
+		count += 4;
+
+		// empty spot has moved one to the left
+		--current.x;
+	}
+	// Then add one to move the goal to 0,0
+	++count;
+
+	std::cout << "Part 2 took " << count << " moves\n";
+
+	// This should yield 265
+	return count;
 }
 
