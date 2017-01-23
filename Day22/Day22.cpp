@@ -45,6 +45,11 @@ struct Node
 		return !(*this == n);
 	}
 
+	bool isViable( const Node& n ) const
+	{
+		return *this != n && used != 0 && n.avail() >= used;
+	}
+
 	static Node fromString( const string& src )
 	{
 		#define match_node	"x([[:digit:]]+)-y([[:digit:]]+)"
@@ -67,11 +72,6 @@ struct Node
 	}
 };
 
-bool is_viable( const Node& a, const Node& b )
-{
-	return a != b && a.used != 0 && b.avail() >= a.used;
-}
-
 int Day22_Test( void )
 {
 	string src = "/dev/grid/node-x99-y100     91T   66T    25T   72%";
@@ -84,7 +84,7 @@ int Day22_Test( void )
 int Day22_Part1( int argc, char* argv[] )
 {
 	vector<string> lines;
-	Read( "input.txt", &lines );
+	Read( "/home/tom/Projects/Advent-2016/Day22/input.txt", &lines );
 
 	vector<Node> nodes;
 	for( const auto& line : lines ) {
@@ -98,7 +98,7 @@ int Day22_Part1( int argc, char* argv[] )
 
 	int count = 0;
 	for( auto& node : nodes ) {
-		count += std::count_if( nodes.begin(), nodes.end(), [ &node ](const Node& n) { return is_viable( node, n ); } );
+		count += std::count_if( nodes.begin(), nodes.end(), [ &node ](const Node& n) { return node.isViable( n ); } );
 	}
 
 	// Should yield 1045
