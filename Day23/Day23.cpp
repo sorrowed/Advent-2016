@@ -73,10 +73,54 @@ int Day23_Test(){
 
 	std::cout << "Register a contains :" << registers[ "a" ].Value << '\n';
 
-	return -1;
+	return registers[ "a" ].Value;
 }
 
 
-int Day23_Part1( int argc, char* argv[] ){ return -1;}
+int Day23_Part1( int argc, char* argv[] )
+{
+	const char * input[] = {
+			"cpy a b",
+			"dec b",
+			"cpy a d",
+			"cpy 0 a",
+			"cpy b c",
+			"inc a",
+			"dec c",
+			"jnz c -2",
+			"dec d",
+			"jnz d -5",
+			"dec b",
+			"cpy b c",
+			"cpy c d",
+			"dec d",
+			"inc c",
+			"jnz d -2",
+			"tgl c",
+			"cpy -16 c",
+			"jnz 1 c",
+			"cpy 94 c",
+			"jnz 82 d",
+			"inc a",
+			"inc d",
+			"jnz d -2",
+			"inc c",
+			"jnz c -5",
+			nullptr
+	};
+
+	Reset();
+	Process( input );
+
+	registers[ "a" ].Value = 7;
+
+	Execute();
+
+	std::cout << "Register a contains :" << registers[ "a" ].Value << '\n';
+
+
+	return registers[ "a" ].Value;
+}
+
 int Day23_Part2( int argc, char* argv[] ){ return -1;}
 
