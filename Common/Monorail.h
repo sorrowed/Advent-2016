@@ -46,83 +46,51 @@ bool IsReg( const std::string& token )
 	return token.find_first_of( regs, 0 ) != std::string::npos;
 }
 
-enum OpType_e
-{
-	DontCare = 0,
-	Inc,
-	Jnz
-};
-
 struct Op
 {
-	OpType_e	OpType;
+	std::string Token;
 	std::string Args;
 
-	Op( ) : OpType( OpType_e::DontCare ){}
-
-	Op( OpType_e type ) : OpType( type ){}
-
-	virtual void Parse( std::stringstream& str ) = 0;
+	virtual void Parse( const std::string& token, std::stringstream& str ) = 0;
 	virtual void Execute() = 0;
 
 	virtual int Arguments()const = 0;
 };
 
-struct Copy1: public Op
+struct Copy: public Op
 {
-	int srcVal;
-	std::string dstReg;
+	std::string src;
+	std::string dst;
 
-	Copy1( std::stringstream& str ) :
+	Copy( const std::string& token, std::stringstream& str ) :
 		Op()
 	{
-		Parse( str );
-
-		std::stringstream a;
-		a << srcVal;
-		a << ' ';
-		a << dstReg;
-
-		Args = a.str();
+		Parse( token, str );
 	}
 
-	void Parse( std::stringstream& str )
+	void Parse( const std::string& token, std::stringstream& str )
 	{
-		str >> srcVal;
-		str >> dstReg;
+		str >> src;
+		str >> dst;
+
+		Token = token;
+		Args = src + ' ' + dst;
 	}
 
 	void Execute()
 	{
-		registers[ dstReg ].Value = srcVal;
-		curOp++;
-	}
+		int value;
+		if( IsReg( src ) )
+			value = registers[ src ].Value;
+		else
+		{
+			std::stringstream s( src );
+			s >> value;
+		}
 
-	int Arguments()const { return 2; }
-};
+		if( IsReg( dst ) )
+			registers[ dst ].Value = value;
 
-struct Copy2: public Op
-{
-	std::string srcReg;
-	std::string dstReg;
-
-	Copy2( std::stringstream& str ) :
-		Op()
-	{
-		Parse( str );
-	}
-
-	void Parse( std::stringstream& str )
-	{
-		str >> srcReg;
-		str >> dstReg;
-
-		Args = srcReg + ' ' + dstReg;
-	}
-
-	void Execute()
-	{
-		registers[ dstReg ].Value = registers[ srcReg ].Value;
 		curOp++;
 	}
 
@@ -132,15 +100,15 @@ struct Copy2: public Op
 struct Jnz: public Op
 {
 	std::string src;
-	int Offs;
+	std::string Offs;
 
-	Jnz( std::stringstream& str ) :
-		Op( OpType_e::Jnz )
+	Jnz( const std::string& token, std::stringstream& str ) :
+		Op()
 	{
-		Parse( str );
+		Parse( token, str );
 	}
 
-	void Parse( std::stringstream& str )
+	void Parse( const std::string& token, std::stringstream& str )
 	{
 		str >> src;
 		str >> Offs;
@@ -150,6 +118,7 @@ struct Jnz: public Op
 		a << ' ';
 		a << Offs;
 
+		Token = token;
 		Args = a.str();
 
 	}
@@ -165,7 +134,19 @@ struct Jnz: public Op
 			s >> value;
 		}
 
-		curOp += value;
+		int offs;
+		if( IsReg( Offs ) )
+			offs = registers[ Offs ].Value;
+		else
+		{
+			std::stringstream s( Offs );
+			s >> offs;
+		}
+
+		if( value )
+			curOp += offs;
+		else
+			++curOp;
 	}
 
 	int Arguments()const { return 2; }
@@ -174,14 +155,15 @@ struct Jnz: public Op
 struct Inc: public Op
 {
 	std::string srcReg;
-	Inc( std::stringstream& str ) :
-		Op( OpType_e::Inc )
+	Inc( const std::string& token, std::stringstream& str ) :
+		Op()
 	{
-		Parse( str );
+		Parse( token, str );
 	}
 
-	void Parse( std::stringstream& str )
+	void Parse( const std::string& token, std::stringstream& str )
 	{
+		Token = token;
 		str >> srcReg;
 		Args = srcReg;
 	}
@@ -199,14 +181,16 @@ struct Dec: public Op
 {
 	std::string srcReg;
 
-	Dec( std::stringstream& str ) :
+	Dec( const std::string& token, std::stringstream& str ) :
 		Op()
 	{
-		Parse( str );
+		Parse( token, str );
 	}
 
-	void Parse( std::stringstream& str )
+	void Parse( const std::string& token, std::stringstream& str )
 	{
+		Token = token;
+
 		str >> srcReg;
 
 		Args = srcReg;
@@ -235,14 +219,16 @@ struct Tgl: public Op
 {
 	std::string srcReg;
 
-	Tgl( std::stringstream& str ) :
+	Tgl( const std::string& token, std::stringstream& str ) :
 		Op()
 	{
-		Parse( str );
+		Parse( token, str );
 	}
 
-	void Parse( std::stringstream& str )
+	void Parse( const std::string& token, std::stringstream& str )
 	{
+		Token = token;
+
 		str >> srcReg;
 
 		Args = srcReg;
@@ -261,7 +247,7 @@ struct Tgl: public Op
 
 			if( (*op)->Arguments() == 1 ){
 
-				if( (*op)->OpType == OpType_e::Inc )
+				if( (*op)->Token == "inc" )
 				{
 					str << "dec ";
 					str << (*op)->Args;
@@ -274,7 +260,7 @@ struct Tgl: public Op
 			}
 			else
 			if( (*op)->Arguments() == 2 ){
-				if( (*op)->OpType == OpType_e::Jnz )
+				if( (*op)->Token == "jnz" )
 				{
 					str << "cpy ";
 					str << (*op)->Args;

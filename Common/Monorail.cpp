@@ -17,25 +17,19 @@ std::shared_ptr<Op> Parse( const char* input )
 	std::stringstream p( input );
 	std::string token;
 	p >> token;
-	if( token == "cpy" ) {
+	if( token == "cpy" ){
 		p.ignore( 1 );
-		token = p.peek();
-		if( IsReg( token ) )
-			r = std::make_shared < Copy2 > (p);
-		else
-			r = std::make_shared < Copy1 > (p);
-	} else if( token == "jnz" ) {
+		r = std::make_shared<Copy>( token, p );
+	}else if( token == "jnz" ){
 		p.ignore( 1 );
-		r = std::make_shared < Jnz > (p );
-	} else if( token == "inc" )
-		r = std::make_shared < Inc > (p );
+		r = std::make_shared<Jnz>( token, p );
+	}else if( token == "inc" )
+		r = std::make_shared<Inc>( token, p );
 	else if( token == "dec" )
-		r = std::make_shared < Dec > (p);
+		r = std::make_shared<Dec>( token, p );
 	else if( token == "tgl" )
-		r = std::make_shared < Tgl > (p);
+		r = std::make_shared<Tgl>( token, p );
 
 	return r;
 }
-
-
 

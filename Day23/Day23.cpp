@@ -20,7 +20,7 @@ void Process( const char* input[] )
 			std::cout << "Parsing failed: " << *p << '\n';
 		else
 		{
-			std::cout << "Args: " << o->Args << '\n';
+			std::cout << "OP: " << o->Token << " " << o->Args << '\n';
 			ops.push_back( o );
 		}
 
@@ -28,12 +28,28 @@ void Process( const char* input[] )
 	}
 }
 
+static void Print()
+{
+	std::cout << "BEGIN\n";
+
+	for( auto o : ops ){
+		std::cout << "OP: " << o->Token << " " << o->Args << '\n';
+	}
+
+	std::cout << "END\n\n";
+}
+
 static
 void Execute()
 {
+	Print();
+
 	curOp = ops.begin();
-	while( curOp != ops.end() )
+	while( curOp != ops.end() ){
 		(*curOp)->Execute();
+
+		Print();
+	}
 }
 
 
@@ -44,7 +60,7 @@ int Day23_Test(){
 			"tgl a",
 			"tgl a",
 			"tgl a",
-			"cpy 1 a", //FIXME: Becomes jnz 1 a which is not supported, yet.
+			"cpy 1 a",
 			"dec a",
 			"dec a",
 			nullptr
