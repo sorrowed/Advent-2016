@@ -89,13 +89,13 @@ double heuristic( const Location& current, const Location& end )
 	return std::abs( end.x - current.x ) + std::abs( end.y - current.y );
 }
 
-typedef unordered_map<Location, Location, Hash> building_state_map;
-typedef unordered_map<Location, double, Hash> building_cost_map;
+typedef unordered_map<Location, Location, Hash> location_map;
+typedef unordered_map<Location, double, Hash> location_cost_map;
 
 std::vector<Location> Astar( const Location& start, const Location& end, const std::map<int,Location>& locations )
 {
-	building_state_map came_from;
-	building_cost_map cost_so_far;
+	location_map came_from;
+	location_cost_map cost_so_far;
 
 	PriorityQueue<Location, double> frontier;
 	frontier.put( start, 0 );
@@ -180,14 +180,17 @@ bool numbers_less( const Location& a, const Location& b )
 	return a.nr < b.nr;
 }
 
-std::vector<std::vector<Location>> find_paths( std::map<int,Location>& locations, std::vector<Location>& numbers, const Location& zero )
+/*!
+ * Just try all permutations.
+ */
+std::vector<std::vector<Location>> find_paths( std::map<int,Location>& locations, std::vector<Location>& numbers, const Location& start )
 {
 	std::sort( numbers.begin(), numbers.end(), numbers_less );
 
 	std::vector<std::vector<Location>> paths;
 	do
 	{
-		std::vector<Location> path = Astar( zero, numbers[ 0 ], locations );
+		std::vector<Location> path = Astar( start, numbers[ 0 ], locations );
 		path.erase( path.begin() );
 
 		for( int i = 0; i < numbers.size() - 1; ++i )
