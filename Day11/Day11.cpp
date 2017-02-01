@@ -10,7 +10,6 @@
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
-#include <queue>
 #include <utility>
 #include <cassert>
 #include <algorithm>
@@ -18,12 +17,12 @@
 #include <iostream>
 #include "combinations.h"
 
+#include "PriorityQueue.h"
+
 using std::array;
-using std::vector;
 using std::unordered_set;
 using std::unordered_map;
 using std::ostream;
-using std::queue;
 
 class aoc_exception: public std::exception
 {
@@ -340,32 +339,6 @@ double heuristic( const building_state& next, const building_state& end )
 			__builtin_popcount( next.get_floor( 0 ) ) * 4;
 }
 
-using std::pair;
-using std::priority_queue;
-template<typename T, typename priority_t>
-struct PriorityQueue
-{
-	typedef pair<priority_t, T> PQElement;
-	priority_queue<PQElement, vector<PQElement>, std::greater<PQElement>> elements;
-
-	inline bool empty() const
-	{
-		return elements.empty();
-	}
-
-	inline void put( T item, priority_t priority )
-	{
-		elements.emplace( priority, item );
-	}
-
-	inline T get()
-	{
-		T best_item = elements.top().second;
-		elements.pop();
-		return best_item;
-	}
-};
-
 typedef unordered_map<building_state, building_state, Hash> building_state_map;
 typedef unordered_map<building_state, double, Hash> building_cost_map;
 
@@ -409,7 +382,6 @@ std::vector<building_state> Astar( const building_state& start, const building_s
 	std::reverse(path.begin(), path.end());
 
 	return path;
-
 }
 
 std::ostream& print( std::ostream& str, item_id id )
