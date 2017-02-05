@@ -128,7 +128,9 @@ int Day25_Part1( int argc, char* argv[] )
 
 int Day25_Part2( int argc, char* argv[] )
 {
-	return -1;
+	int win = 25;
+
+	return win;
 }
 
 
