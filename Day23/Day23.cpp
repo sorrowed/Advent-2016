@@ -8,23 +8,6 @@
 #include "Monorail.h"
 #include <iostream>
 
-static
-void Process( const char* input[] )
-{
-	auto p = input;
-	while( *p ){
-
-		auto o = Parse( *p );
-
-		if( o == nullptr )
-			std::cout << "Parsing failed: " << *p << '\n';
-		else
-			ops.push_back( o );
-
-		++p;
-	}
-}
-
 static void Print()
 {
 	std::cout << "BEGIN\n";
@@ -34,19 +17,6 @@ static void Print()
 	}
 
 	std::cout << "END\n\n";
-}
-
-static
-void Execute()
-{
-	Print();
-
-	curOp = ops.begin();
-	while( curOp != ops.end() ){
-		(*curOp)->Execute();
-
-		//Print();
-	}
 }
 
 int Day23_Test()

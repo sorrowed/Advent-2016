@@ -29,6 +29,9 @@ extern OpQue ops;
 extern OpQue::iterator curOp;
 extern RegMap registers;
 
+void Process( const char* input[] );
+void Execute();
+
 std::shared_ptr<Op> Parse( const char* input );
 
 static inline
@@ -109,6 +112,20 @@ struct Tgl: public Op
 	std::string srcReg;
 
 	Tgl( const std::string& token, std::stringstream& str );
+	void Parse( const std::string& token, std::stringstream& str );
+
+	int Arguments()const { return 1; }
+
+	void Execute();
+};
+
+struct Out: public Op
+{
+	int Value;
+
+	std::string src;
+
+	Out( const std::string& token, std::stringstream& str );
 	void Parse( const std::string& token, std::stringstream& str );
 
 	int Arguments()const { return 1; }

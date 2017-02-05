@@ -5,10 +5,40 @@
  *      Author: tom
  */
 #include "Monorail.h"
+#include <iostream>
 
 OpQue ops;
 OpQue::iterator curOp;
 RegMap registers;
+
+void Process( const char* input[] )
+{
+	auto p = input;
+	while( *p ){
+
+		auto o = Parse( *p );
+
+		if( o == nullptr )
+			std::cout << "Parsing failed: " << *p << '\n';
+		else
+			ops.push_back( o );
+
+		++p;
+	}
+}
+
+int out;
+int fault;
+
+void Execute()
+{
+	//Print();
+
+	curOp = ops.begin();
+	while( curOp != ops.end() && !fault ){
+		(*curOp)->Execute();
+	}
+}
 
 std::shared_ptr<Op> Parse( const char* input )
 {
@@ -31,6 +61,8 @@ std::shared_ptr<Op> Parse( const char* input )
 		r = std::make_shared<Dec>( token, p );
 	else if( token == "tgl" )
 		r = std::make_shared<Tgl>( token, p );
+	else if( token == "out" )
+		r = std::make_shared<Out>( token, p );
 
 	return r;
 }
@@ -214,4 +246,38 @@ void Tgl::Execute()
 	}
 	else
 		curOp++;
+}
+
+Out::Out( const std::string& token, std::stringstream& str ) :
+		Op()
+{
+	Parse( token, str );
+}
+
+void Out::Parse( const std::string& token, std::stringstream& str )
+{
+	Token = token;
+
+	str >> src;
+
+	Args = src;
+}
+
+void Out::Execute()
+{
+	if( IsReg( src ) )
+		Value = registers[ src ].Value;
+	else {
+		std::stringstream s( src );
+		s >> Value;
+	}
+
+	if( Value != out )
+		out = Value;
+	else
+		fault = 1;
+
+	std::cout << out;
+
+	curOp++;
 }

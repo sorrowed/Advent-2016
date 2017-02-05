@@ -26,14 +26,6 @@ void Process()
 	}
 }
 
-static
-void Execute()
-{
-	curOp = ops.begin();
-	while( curOp != ops.end() )
-		(*curOp)->Execute();
-}
-
 int Day12_Part1( int argc, char* argv[] )
 {
 	Reset();
